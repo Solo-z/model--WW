@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """
-MODEL-W — Music Production AI
+MODEL-W / ROOM — Music Production AI
 
-A clean wrapper around ACE-Step 1.5. Type a prompt, get music.
+Full pipeline: text prompt + voice reference → audio + stems + MIDI.
 
 Usage:
   python app.py
-  python app.py --share       (public link for demos)
+  python app.py --share
   python app.py --port 8080
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -20,49 +21,30 @@ from pathlib import Path
 import gradio as gr
 
 _ROOT = Path(__file__).resolve().parent
-
-# Add ACE-Step source to path (no pip install needed)
 _ACESTEP_SRC = _ROOT / "models" / "ace-step"
 if _ACESTEP_SRC.exists() and str(_ACESTEP_SRC) not in sys.path:
     sys.path.insert(0, str(_ACESTEP_SRC))
 
-# ── ACE-Step loading (lazy) ────────────────────────────────────────────────
+# ── Engine loading (lazy) ──────────────────────────────────────────────
 
-_handler = None
-_llm = None
-
-
-def _load_acestep():
-    global _handler, _llm
-    if _handler is not None:
-        return _handler, _llm
-
-    from acestep.handler import AceStepHandler
-    from acestep.llm_inference import LLMHandler
-
-    env = {}
-    env_file = _ROOT / ".env.acestep"
-    if env_file.exists():
-        for line in env_file.read_text().splitlines():
-            if "=" in line and not line.startswith("#"):
-                k, v = line.split("=", 1)
-                env[k.strip()] = v.strip()
-
-    root = env.get("ACESTEP_ROOT", str(_ROOT / "models" / "ace-step"))
-    dit = env.get("ACESTEP_DIT_CONFIG", "acestep-v15-turbo")
-    lm = env.get("ACESTEP_LM_MODEL", "acestep-5Hz-lm-1.7B")
-    backend = env.get("ACESTEP_LM_BACKEND", "vllm")
-
-    _handler = AceStepHandler()
-    _handler.initialize_service(project_root=root, config_path=dit, device="cuda")
-
-    _llm = LLMHandler()
-    _llm.initialize(checkpoint_dir=root, lm_model_path=lm, backend=backend, device="cuda")
-
-    return _handler, _llm
+_engine = None
 
 
-def _check_acestep() -> bool:
+def _get_engine():
+    global _engine
+    if _engine is not None:
+        return _engine
+    try:
+        from modelw.room import RoomEngine, RoomConfig
+        _engine = RoomEngine(RoomConfig())
+        _engine.initialize()
+        return _engine
+    except Exception as e:
+        print(f"[ROOM] Engine init failed: {e}")
+        raise gr.Error(f"Engine not ready: {e}")
+
+
+def _check_available() -> bool:
     try:
         import acestep  # noqa: F401
         return True
@@ -70,45 +52,64 @@ def _check_acestep() -> bool:
         return False
 
 
-ACESTEP_INSTALLED = _check_acestep()
+AVAILABLE = _check_available()
 
 
-# ── Generate ───────────────────────────────────────────────────────────────
+# ── Generate ───────────────────────────────────────────────────────────
 
-def generate(prompt, duration, seed, steps, guidance):
-    """Text prompt in, audio out."""
-    if not ACESTEP_INSTALLED:
-        raise gr.Error(
-            "ACE-Step not installed. Run:  python scripts/setup_acestep.py"
-        )
+def generate(prompt, voice_ref, split_stems, extract_midi, duration, seed, steps, guidance):
+    if not AVAILABLE:
+        raise gr.Error("ROOM not installed. Run: python scripts/setup_room.py")
 
-    from acestep.inference import GenerationParams, GenerationConfig, generate_music
+    engine = _get_engine()
 
-    dit, llm = _load_acestep()
-
-    out_dir = str(_ROOT / "output" / "audio")
+    out_dir = str(_ROOT / "output" / "room")
     os.makedirs(out_dir, exist_ok=True)
 
-    params = GenerationParams(
-        caption=prompt,
+    voice_path = voice_ref if voice_ref else None
+
+    result = engine.generate(
+        prompt=prompt,
+        voice_ref=voice_path,
+        split_stems=split_stems,
+        extract_midi=extract_midi,
         duration=float(duration),
         seed=int(seed),
         inference_steps=int(steps),
         guidance_scale=float(guidance),
-        instrumental=True,
+        save_dir=out_dir,
     )
-    config = GenerationConfig(batch_size=1, audio_format="wav")
 
-    result = generate_music(dit, llm, params, config, save_dir=out_dir)
+    # Primary audio output
+    audio_out = result.get("voice_cloned_path") or result.get("audio_path")
 
-    if result.success and result.audios:
-        path = result.audios[0]["path"]
-        return path, f"Seed: {result.audios[0]['params'].get('seed', '?')}"
-    else:
-        raise gr.Error(f"Generation failed: {result.error}")
+    # Stem files for download
+    stem_files = []
+    for name, path in result.get("stems", {}).items():
+        if path and os.path.exists(path):
+            stem_files.append(path)
+
+    # MIDI files for download
+    midi_files = []
+    for name, path in result.get("midis", {}).items():
+        if path and os.path.exists(path):
+            midi_files.append(path)
+
+    all_files = stem_files + midi_files
+
+    info_parts = []
+    if result.get("voice_cloned_path"):
+        info_parts.append("Voice cloned")
+    if result.get("stems"):
+        info_parts.append(f"Stems: {', '.join(result['stems'].keys())}")
+    if result.get("midis"):
+        info_parts.append(f"MIDI: {', '.join(result['midis'].keys())}")
+    info = " | ".join(info_parts) if info_parts else "Generated"
+
+    return audio_out, all_files if all_files else None, info
 
 
-# ── UI ─────────────────────────────────────────────────────────────────────
+# ── UI ─────────────────────────────────────────────────────────────────
 
 CSS = """
 .main-header { text-align: center; padding: 24px 0 8px 0; }
@@ -124,11 +125,11 @@ footer { display: none !important; }
 
 EXAMPLES = [
     ["dark aggressive trap, D minor, 140 BPM, heavy 808 bass, rolling hi-hats"],
-    ["lo-fi chill beat, A minor, 85 BPM, vinyl crackle, mellow piano, rainy mood"],
-    ["epic cinematic orchestral, G minor, 100 BPM, dramatic strings, war drums"],
-    ["house music, F# minor, 126 BPM, deep bass, synth stabs, four-on-the-floor"],
-    ["smooth R&B, Eb major, 90 BPM, soulful chords, warm keys, late night vibe"],
-    ["UK drill, C# minor, 140 BPM, sliding 808s, dark pads, aggressive energy"],
+    ["piano ballad, E minor, 70 BPM, emotional, soft vocals"],
+    ["lo-fi chill beat, A minor, 85 BPM, vinyl crackle, mellow piano"],
+    ["epic cinematic orchestral, G minor, 100 BPM, dramatic strings"],
+    ["smooth R&B, Eb major, 90 BPM, soulful chords, warm keys"],
+    ["house music, F# minor, 126 BPM, deep bass, synth stabs"],
 ]
 
 
@@ -141,27 +142,37 @@ def build_ui():
             font=gr.themes.GoogleFont("Inter"),
         ),
         css=CSS,
-        title="MODEL-W",
+        title="ROOM",
     ) as demo:
 
         gr.HTML("""
         <div class="main-header">
-            <h1>MODEL-W</h1>
-            <p>Describe the music you want. We'll make it.</p>
+            <h1>ROOM</h1>
+            <p>Describe the music. Upload your voice. We handle the rest.</p>
         </div>
         """)
 
         with gr.Column():
             prompt = gr.Textbox(
                 label="Prompt",
-                placeholder="dark trap beat, D minor, 140 BPM, heavy 808s, aggressive...",
+                placeholder="piano ballad, E minor, emotional, soft vocals...",
                 lines=3,
                 elem_classes=["prompt-box"],
             )
 
+            voice_ref = gr.Audio(
+                label="Voice Reference (optional — upload a clip of your voice)",
+                type="filepath",
+            )
+
+            with gr.Row():
+                split_stems = gr.Checkbox(value=False, label="Split to stems (vocals, drums, bass, other)")
+                extract_midi = gr.Checkbox(value=False, label="Extract MIDI from stems")
+
             generate_btn = gr.Button("Generate", variant="primary", size="lg")
 
             audio_out = gr.Audio(label="Output", type="filepath")
+            download_files = gr.File(label="Stems + MIDI files", file_count="multiple")
             info = gr.Markdown("")
 
             with gr.Accordion("Settings", open=False):
@@ -172,22 +183,18 @@ def build_ui():
                     steps = gr.Slider(4, 50, value=8, step=1, label="Inference steps")
                     guidance = gr.Slider(1.0, 15.0, value=7.0, step=0.5, label="Guidance scale")
 
-            gr.Examples(
-                examples=EXAMPLES,
-                inputs=[prompt],
-                label="Try these",
-            )
+            gr.Examples(examples=EXAMPLES, inputs=[prompt], label="Try these")
 
         generate_btn.click(
             fn=generate,
-            inputs=[prompt, duration, seed, steps, guidance],
-            outputs=[audio_out, info],
+            inputs=[prompt, voice_ref, split_stems, extract_midi, duration, seed, steps, guidance],
+            outputs=[audio_out, download_files, info],
         )
 
         gr.Markdown("""
         ---
         <center style="color: #64748b; font-size: 0.85em;">
-        MODEL-W v0.2.0
+        ROOM v0.1 — A foundation model for music production
         </center>
         """)
 
@@ -200,10 +207,10 @@ def main():
     ap.add_argument("--share", action="store_true")
     args = ap.parse_args()
 
-    os.makedirs(_ROOT / "output" / "audio", exist_ok=True)
+    os.makedirs(_ROOT / "output", exist_ok=True)
 
-    status = "READY" if ACESTEP_INSTALLED else "NOT INSTALLED (run: python scripts/setup_acestep.py)"
-    print(f"\n  MODEL-W v0.2.0 | Audio engine: {status}\n")
+    status = "READY" if AVAILABLE else "NOT INSTALLED (run: python scripts/setup_room.py)"
+    print(f"\n  ROOM v0.1 | Engine: {status}\n")
 
     demo = build_ui()
     demo.launch(server_port=args.port, share=args.share, server_name="0.0.0.0")

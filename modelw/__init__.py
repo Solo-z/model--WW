@@ -20,6 +20,7 @@ from modelw.dataset import LakhMIDIDataset, SessionDataset, SessionDatasetConfig
 from modelw.generate import MIDIGenerator
 from modelw.eval_metrics import MIDIEvaluator, EvaluationConfig
 from modelw.acestep_bridge import ACEStepBridge, ACEStepConfig, session_to_caption
+from modelw.room import RoomEngine, RoomConfig
 
 __all__ = [
     "MIDITokenizer",
@@ -34,5 +35,7 @@ __all__ = [
     "ACEStepBridge",
     "ACEStepConfig",
     "session_to_caption",
+    "RoomEngine",
+    "RoomConfig",
 ]
 
