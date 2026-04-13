@@ -97,7 +97,8 @@ class RoomConfig:
 
     # OpenVoice
     openvoice_root: str = str(_ROOT / "models" / "openvoice")
-    openvoice_device: str = "cuda"
+    # OpenVoice demos use ``cuda:0``; plain ``cuda`` can confuse some loads.
+    openvoice_device: str = "cuda:0"
 
     # Demucs
     demucs_model: str = "htdemucs"
@@ -155,17 +156,36 @@ class RoomEngine:
     def _load_openvoice(self):
         if self._openvoice is not None:
             return
-        from openvoice.api import ToneColorConverter
         from openvoice import se_extractor
+        from openvoice.api import ToneColorConverter
 
         print("[ROOM] Loading OpenVoice V2...")
-        ckpt_path = Path(self.config.openvoice_root) / "checkpoints_v2"
-        self._openvoice = ToneColorConverter(
-            f"{ckpt_path}/converter", device=self.config.openvoice_device
-        )
+        ckpt_root = Path(self.config.openvoice_root) / "checkpoints_v2"
+        conv_dir = ckpt_root / "converter"
+        config_json = conv_dir / "config.json"
+        weights_pth = conv_dir / "checkpoint.pth"
+        if not config_json.is_file():
+            raise FileNotFoundError(
+                f"OpenVoice config missing: {config_json} "
+                f"(run: python scripts/setup_room.py — need HF snapshot in checkpoints_v2/)"
+            )
+        if not weights_pth.is_file():
+            raise FileNotFoundError(
+                f"OpenVoice weights missing: {weights_pth} "
+                f"(run: python scripts/setup_room.py)"
+            )
+
+        # Official demo: ToneColorConverter(f'{ckpt}/config.json'); then load_ckpt('.pth').
+        # We previously passed only the folder and never loaded weights → broken / silent VC.
+        dev = self.config.openvoice_device
+        if dev == "cuda":
+            dev = "cuda:0"
+
+        self._openvoice = ToneColorConverter(str(config_json), device=dev)
+        self._openvoice.load_ckpt(str(weights_pth))
         self._openvoice_se_extractor = se_extractor
-        self._openvoice_ckpt = ckpt_path
-        print("[ROOM] OpenVoice ready.")
+        self._openvoice_ckpt = ckpt_root
+        print("[ROOM] OpenVoice ready (converter weights loaded).")
 
     def _load_demucs(self):
         if self._demucs_model is not None:
