@@ -42,6 +42,52 @@ def pip(*args):
     run([sys.executable, "-m", "pip", "install", *args])
 
 
+def pip_try(*args):
+    """Install but do not fail setup (optional CUDA / hub extras)."""
+    print(f"  $ pip install (optional) {' '.join(args)}")
+    subprocess.run([sys.executable, "-m", "pip", "install", *args], check=False)
+
+
+def install_acestep_runtime_dependencies() -> None:
+    """
+    ACE-Step is installed with --no-deps so we do not clobber a pinned torch stack.
+    These are the imports that typically break first if missing (loguru, transformers, …).
+    """
+    print("  Installing ACE-Step runtime Python dependencies (no torch upgrade)...")
+    pip(
+        "loguru>=0.7.3",
+        "accelerate>=1.12.0",
+        "diffusers>=0.37.0",
+        "diskcache",
+        "einops>=0.8.1",
+        "lightning>=2.0.0",
+        "lycoris-lora",
+        "matplotlib>=3.7.5",
+        "peft>=0.18.0",
+        "tensorboard>=2.20.0",
+        "toml",
+        "typer-slim>=0.21.1",
+        "vector-quantize-pytorch>=1.27.15",
+        "transformers>=4.51.0,<4.58.0",
+        "safetensors",
+        "sentencepiece",
+    )
+    if sys.platform == "linux":
+        pip_try(
+            "torchvision==0.21.0",
+            "--index-url",
+            "https://download.pytorch.org/whl/cu124",
+        )
+    # Nice-to-have; ACE-Step lists them but they often need extra system libs.
+    for spec in (
+        "modelscope",
+        "torchao>=0.16.0,<0.17.0",
+        "torchcodec>=0.9.1",
+    ):
+        pip_try(spec)
+    print("  (Optional) For LM backend vllm, install: pip install nano-vllm  # RoomConfig.lm_backend='vllm'")
+
+
 def main():
     ap = argparse.ArgumentParser(description="Set up all ROOM model components")
     ap.add_argument("--skip-acestep", action="store_true")
@@ -71,6 +117,7 @@ def main():
             print("  Fixed Python version pin.")
 
         pip("-e", str(acestep_dir), "--no-deps")
+        install_acestep_runtime_dependencies()
         print("  ACE-Step ready. Weights auto-download on first run.")
     else:
         print("\n[1/4] ACE-Step — skipped")
@@ -131,6 +178,10 @@ def main():
         f.write(f"OPENVOICE_ROOT={models_dir / 'openvoice'}\n")
         f.write(f"DEMUCS_MODEL=htdemucs\n")
 
+    # Whisper/OpenVoice can pull numpy 2.x; ROOM + torch wheels expect1.26.x
+    print("\n[finalize] Pin numpy<2 for stack stability...")
+    pip("numpy>=1.26,<2")
+
     print(f"""
 ==========================================================
   ROOM Setup Complete
@@ -149,6 +200,9 @@ def main():
     bash scripts/bootstrap_venv_room.sh
     source .venv/bin/activate
     python scripts/setup_room.py
+
+  Verify imports (catches missing deps before Gradio):
+    python scripts/verify_room_env.py
 
   Quick test:
     python -m modelw.room "piano ballad, E minor, emotional" --stems --midi

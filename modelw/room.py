@@ -44,7 +44,8 @@ class RoomConfig:
     acestep_root: str = str(_ROOT / "models" / "ace-step")
     dit_config: str = "acestep-v15-turbo"
     lm_model: str = "acestep-5Hz-lm-1.7B"
-    lm_backend: str = "vllm"
+    # "pt" avoids nano-vllm (fewer pip landmines on fresh venvs). Use "vllm" if you install it.
+    lm_backend: str = "pt"
 
     # OpenVoice
     openvoice_root: str = str(_ROOT / "models" / "openvoice")

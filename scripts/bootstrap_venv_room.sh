@@ -28,7 +28,7 @@ python -m pip install -U pip wheel
 
 echo "[venv] Installing PyTorch stack (cu124, CUDA 12.x) — same major/minor for torch + torchaudio ..."
 python -m pip install "numpy>=1.26,<2"
-python -m pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+python -m pip install torch==2.6.0 torchaudio==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
 
 echo "[venv] Installing MODEL-W package + Gradio ..."
 python -m pip install -e .
