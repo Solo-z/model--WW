@@ -1,0 +1,50 @@
+# MODEL-W Base Training Configuration
+# For 1x A100 40GB or 1x A10
+
+model:
+  size: base
+  vocab_size: 512
+  max_seq_len: 2048
+  d_model: 768
+  n_heads: 12
+  n_layers: 12
+  d_ff: 3072
+  dropout: 0.1
+  gradient_checkpointing: true
+
+data:
+  data_dir: ./data/lakh_midi
+  cache_dir: ./cache
+  max_seq_len: 2048
+  min_seq_len: 64
+  train_split: 0.95
+  num_workers: 8
+  
+  augmentation:
+    tempo_augment: true
+    tempo_range: [0.8, 1.2]
+    pitch_augment: true
+    pitch_range: [-6, 6]
+
+training:
+  batch_size: 32
+  gradient_accumulation_steps: 4
+  learning_rate: 3e-4
+  weight_decay: 0.1
+  warmup_steps: 2000
+  max_steps: 100000
+  
+  use_amp: true
+  grad_clip: 1.0
+  
+  checkpoint_dir: ./checkpoints
+  save_every: 5000
+  eval_every: 1000
+  log_every: 100
+
+logging:
+  wandb_project: model-w
+  wandb_run_name: base-training
+
+# Expected training time on 1x A100: ~24 hours for 100k steps
+

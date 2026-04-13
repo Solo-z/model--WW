@@ -1,0 +1,75 @@
+# MODEL-W Base (125M) - SAFE/CONSERVATIVE Settings
+# Prioritizes stability over speed
+
+model:
+  size: base
+  vocab_size: 512
+  max_seq_len: 2048
+  d_model: 768
+  n_heads: 12
+  n_layers: 12
+  d_ff: 3072
+  dropout: 0.1
+  gradient_checkpointing: true
+  use_flash_attention: true
+
+data:
+  data_dir: ./data/lakh_midi
+  cache_dir: ./cache
+  max_seq_len: 2048
+  min_seq_len: 128
+  train_split: 0.95
+  num_workers: 8
+  
+  augmentation:
+    tempo_augment: true
+    tempo_range: [0.9, 1.1]      # Conservative augment
+    pitch_augment: true
+    pitch_range: [-3, 3]          # Minor 3rd max
+
+training:
+  # === SAFE BATCH SIZE ===
+  batch_size: 32                  # Conservative for memory
+  gradient_accumulation_steps: 4  # Effective: 128
+  
+  # === SAFE LEARNING RATE ===
+  learning_rate: 1.5e-4           # Conservative - less risk of instability
+  min_learning_rate: 1e-5         # Don't decay too low
+  weight_decay: 0.1
+  
+  # === SAFE WARMUP ===
+  warmup_steps: 3000              # ~3% of training, gradual ramp
+  warmup_type: linear
+  
+  # === SAFE STEPS ===
+  # 190k files × ~800 tokens = 152M tokens
+  # Batch 128 × 2048 = 262k tokens/step  
+  # ~580 steps/epoch → 50k steps = ~86 epochs
+  max_steps: 50000                # Enough to converge, not overfit
+  
+  # Early stopping
+  early_stopping: true
+  early_stopping_patience: 5      # Stop if val_loss doesn't improve for 5 evals
+  
+  # === SAFE OPTIMIZATION ===
+  use_amp: true
+  grad_clip: 0.5                  # Tighter clipping for stability
+  
+  # === CHECKPOINTING ===
+  checkpoint_dir: ./checkpoints
+  save_every: 5000
+  eval_every: 1000                # Frequent eval to catch overfitting
+  log_every: 50
+
+logging:
+  wandb_project: model-w
+  wandb_run_name: base-125m-safe
+
+# ============================================
+# TRAINING TIME ESTIMATES
+# ============================================
+# 1x A100 40GB: ~12-14 hours for 50k steps
+# 1x A100 80GB: ~10-12 hours
+# 4x A100:      ~3-4 hours
+# ============================================
+

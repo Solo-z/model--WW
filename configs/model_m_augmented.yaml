@@ -1,0 +1,59 @@
+# MODEL-W Medium - AUGMENTED DATA
+# "model_m_augmented" - Learn robust patterns from augmented data
+
+model:
+  name: "model_m_augmented"
+  size: medium            # ~193M Parameters
+  d_model: 1024           # Wide (Smart)
+  n_layers: 16            # Deep (Nuanced)
+  n_heads: 16
+  max_seq_len: 8192       # Full context
+  vocab_size: 512
+  dropout: 0.1
+  gradient_checkpointing: true
+  use_flash_attention: true
+
+data:
+  data_dir: ./data/lakh_midi
+  cache_dir: ./cache/augmented
+  max_seq_len: 8192
+  min_seq_len: 128
+  train_split: 0.95
+  num_workers: 8
+  
+  augmentation:
+    pitch_augment: true
+    pitch_range: [-6, 6]      # ENABLED - The "Ocean" of data
+    tempo_augment: true
+    tempo_range: [0.9, 1.1]   # ENABLED - Tempo variation
+
+training:
+  learning_rate: 2.0e-4       # Lower LR for larger model
+  weight_decay: 0.1
+  warmup_steps: 2000
+  max_steps: 25000            # Longer run for augmented data
+  
+  batch_size: 16
+  gradient_accumulation_steps: 4
+  # Effective batch: 64
+  
+  use_amp: true
+  grad_clip: 1.0
+  
+  checkpoint_dir: ./checkpoints/model_m_augmented
+  save_every: 5000
+  eval_every: 1000
+  log_every: 50
+
+logging:
+  wandb_project: model-w
+  wandb_run_name: model_m_augmented
+
+# ============================================
+# TRAINING ESTIMATES
+# ============================================
+# 1x A100 40GB: ~8-10 hours for 25k steps
+# 1x A100 80GB: ~6-8 hours
+# 4x A100:      ~2-3 hours
+# ============================================
+

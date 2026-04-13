@@ -1,0 +1,50 @@
+# ACE-Step LM Fine-tune on MODEL-W Session Specs
+# Fine-tunes the 0.6B/1.7B Qwen3-based planner to generate
+# MODEL-W session JSON from text prompts.
+#
+# The goal: "dark trap 140bpm" → full daw_session_spec_v0.3 JSON
+# instead of just a caption. This gives us structured control
+# over arrangement, tracks, clips, and mixing params.
+
+base_model: "acestep-5Hz-lm-1.7B"   # or 0.6B for cheaper
+
+data:
+  train_dir: "./synthetic/sessions/corpus_200"
+  format: "session_json"             # custom: we convert session → (prompt, completion) pairs
+  max_seq_len: 4096
+  train_split: 0.95
+
+# LoRA config (ACE-Step supports LoRA natively)
+lora:
+  enabled: true
+  rank: 16
+  alpha: 32
+  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj"]
+  dropout: 0.05
+
+training:
+  batch_size: 4
+  gradient_accumulation_steps: 8
+  learning_rate: 2e-4
+  weight_decay: 0.01
+  warmup_steps: 100
+  max_steps: 2000
+  use_amp: true
+  grad_clip: 1.0
+
+  # scheduler
+  lr_scheduler: "cosine"
+  min_lr_ratio: 0.1
+
+  # checkpointing
+  save_every: 500
+  eval_every: 200
+  checkpoint_dir: "./checkpoints/acestep_lm_finetune"
+
+logging:
+  wandb_project: "model-w-acestep-finetune"
+  wandb_run_name: "lm-1.7B-session-lora"
+
+# Expected: ~1 hour on a single 3090 (12GB VRAM) with LoRA
+# Dataset: 200 sessions × ~1 prompt-completion pair each = 200 training examples
+# For better results, generate 1000+ sessions with varied prompts

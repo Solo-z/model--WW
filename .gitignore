@@ -1,0 +1,103 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Project specific
+data/
+cache/
+checkpoints/
+logs/
+synthetic_data/
+demo_output/
+exports/
+*.mid
+*.midi
+
+# Large files
+*.tar.gz
+*.zip
+*.pt
+*.pth
+*.onnx
+
+# W&B
+wandb/
+
+# ACE-Step model weights (cloned separately)
+models/ace-step/
+.env.acestep
+
+# Generated corpus (regenerate with: python scripts/generate_session_corpus.py)
+synthetic/sessions/corpus_*/
+
+# Generated audio output
+output/
+

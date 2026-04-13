@@ -1,0 +1,62 @@
+# MODEL-W Base (125M) - Optimized for 190k Lakh MIDI
+# Target: Foundation model for synthetic data generation
+
+model:
+  size: base
+  vocab_size: 512
+  max_seq_len: 2048
+  d_model: 768
+  n_heads: 12
+  n_layers: 12
+  d_ff: 3072
+  dropout: 0.1
+  
+  # Memory optimization
+  gradient_checkpointing: true
+  use_flash_attention: true
+
+data:
+  data_dir: ./data/lakh_midi
+  cache_dir: ./cache
+  max_seq_len: 2048
+  min_seq_len: 128      # Skip very short sequences
+  train_split: 0.97     # More training data (190k is plenty for val)
+  num_workers: 8
+  
+  augmentation:
+    tempo_augment: true
+    tempo_range: [0.85, 1.15]   # Conservative tempo augment
+    pitch_augment: true
+    pitch_range: [-5, 5]        # +/- perfect 4th
+
+training:
+  # Batch sizing for 1x A100 40GB
+  batch_size: 48                 # Can push higher with flash attn
+  gradient_accumulation_steps: 2
+  # Effective batch: 48 * 2 = 96
+  
+  # Learning rate - slightly higher for faster convergence
+  learning_rate: 4e-4
+  weight_decay: 0.1
+  warmup_steps: 1500            # ~1.5% of training
+  max_steps: 100000
+  
+  # Optimization
+  use_amp: true                 # bf16 on A100
+  grad_clip: 1.0
+  
+  # Checkpointing
+  checkpoint_dir: ./checkpoints
+  save_every: 10000             # Save every 10k steps
+  eval_every: 2000
+  log_every: 50
+
+logging:
+  wandb_project: model-w
+  wandb_run_name: base-125m-lakh190k
+
+# Hardware targets
+# 1x A100 40GB: batch_size=48, ~24 hours
+# 1x A100 80GB: batch_size=64, ~20 hours  
+# 4x A100 80GB: batch_size=48/gpu, ~6 hours
+

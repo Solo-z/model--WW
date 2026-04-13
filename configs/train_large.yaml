@@ -1,0 +1,51 @@
+# MODEL-W Large Training Configuration
+# For 4-8x A100 80GB
+
+model:
+  size: large
+  vocab_size: 512
+  max_seq_len: 2048
+  d_model: 1024
+  n_heads: 16
+  n_layers: 24
+  d_ff: 4096
+  dropout: 0.1
+  gradient_checkpointing: true
+
+data:
+  data_dir: ./data/lakh_midi
+  cache_dir: ./cache
+  max_seq_len: 2048
+  min_seq_len: 64
+  train_split: 0.95
+  num_workers: 8
+  
+  augmentation:
+    tempo_augment: true
+    tempo_range: [0.8, 1.2]
+    pitch_augment: true
+    pitch_range: [-6, 6]
+
+training:
+  batch_size: 24  # Per GPU
+  gradient_accumulation_steps: 2
+  learning_rate: 2e-4
+  weight_decay: 0.1
+  warmup_steps: 4000
+  max_steps: 200000
+  
+  use_amp: true
+  use_deepspeed: true
+  grad_clip: 1.0
+  
+  checkpoint_dir: ./checkpoints
+  save_every: 5000
+  eval_every: 2000
+  log_every: 100
+
+logging:
+  wandb_project: model-w
+  wandb_run_name: large-training
+
+# Expected training time on 8x A100: ~48 hours for 200k steps
+

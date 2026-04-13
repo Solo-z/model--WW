@@ -1,0 +1,59 @@
+# MODEL-W Medium - AUGMENTED DATA  
+# OPTIMIZED FOR NVIDIA GH200 (96GB HBM3)
+
+model:
+  name: "model_m_augmented"
+  size: medium            # ~193M Parameters
+  d_model: 1024
+  n_layers: 16
+  n_heads: 16
+  max_seq_len: 8192
+  vocab_size: 512
+  dropout: 0.1
+  gradient_checkpointing: false   # GH200 has enough memory
+  use_flash_attention: true
+
+data:
+  data_dir: ./data/lakh_midi
+  cache_dir: ./cache/augmented
+  max_seq_len: 8192
+  min_seq_len: 128
+  train_split: 0.95
+  num_workers: 12
+  
+  augmentation:
+    pitch_augment: true
+    pitch_range: [-6, 6]
+    tempo_augment: true
+    tempo_range: [0.9, 1.1]
+
+training:
+  # === GH200 OPTIMIZED BATCHING ===
+  batch_size: 48                   # 3x larger than A100 config
+  gradient_accumulation_steps: 2
+  # Effective batch: 96
+  
+  learning_rate: 2.0e-4
+  weight_decay: 0.1
+  warmup_steps: 1500
+  max_steps: 25000
+  
+  use_amp: true
+  grad_clip: 1.0
+  
+  checkpoint_dir: ./checkpoints/model_m_augmented
+  save_every: 5000
+  eval_every: 1000
+  log_every: 50
+
+logging:
+  wandb_project: model-w
+  wandb_run_name: model_m_augmented_gh200
+
+# ============================================
+# GH200 ESTIMATES
+# ============================================
+# ~4-5 hours for 25k steps
+# 2x faster than A100 80GB
+# ============================================
+

@@ -1,0 +1,76 @@
+# MIDI Generation Configuration
+
+generation:
+  max_length: 1024
+  temperature: 0.9
+  top_k: 50
+  top_p: 0.92
+  repetition_penalty: 1.15
+  
+  batch_size: 16
+  num_workers: 4
+
+conditioning:
+  tempo_range: [60, 180]
+  instruments:
+    - piano
+    - guitar
+    - bass
+    - strings
+    - synth_lead
+    - synth_pad
+    - brass
+    - drums
+  moods:
+    - happy
+    - sad
+    - energetic
+    - calm
+    - dark
+    - bright
+    - epic
+    - mysterious
+    - romantic
+    - peaceful
+
+quality_filter:
+  enabled: true
+  min_notes: 20
+  max_notes: 2000
+  min_unique_pitches: 5
+  min_bars: 4
+  max_repetition_ratio: 0.5
+
+# Generation farm settings
+farm:
+  samples_per_checkpoint: 10000
+  enable_resume: true
+  parallel_decode: true
+  
+# Preset prompts for consistent generation
+presets:
+  upbeat_piano:
+    tempo: 120
+    instrument: piano
+    mood: energetic
+  
+  sad_strings:
+    tempo: 60
+    instrument: strings
+    mood: sad
+  
+  epic_orchestral:
+    tempo: 90
+    instrument: ensemble
+    mood: epic
+  
+  chill_synth:
+    tempo: 85
+    instrument: synth_pad
+    mood: calm
+  
+  dark_bass:
+    tempo: 70
+    instrument: bass
+    mood: dark
+

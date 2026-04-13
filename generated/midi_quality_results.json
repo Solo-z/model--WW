@@ -1,0 +1,28 @@
+{
+  "config": {
+    "min_notes": 20,
+    "max_notes": 2000,
+    "min_duration_seconds": 5.0,
+    "max_overlap_ratio": 0.15,
+    "grid_subdivision": 4,
+    "grid_tolerance_ms": 40.0,
+    "acceptance_threshold": 0.75
+  },
+  "summary": {
+    "total_files": 0,
+    "valid_files": 0,
+    "invalid_files": 0,
+    "hard_validity_rate": 0.0,
+    "acceptance_rate": 0.0,
+    "mean_composite_score": 0.0,
+    "mean_prompt_match_score": null,
+    "mean_key_scale_adherence": 0.0,
+    "mean_rhythm_grid_accuracy": 0.0,
+    "mean_velocity_expressiveness": 0.0,
+    "mean_repetition_variation_balance": 0.0,
+    "mean_section_coherence": 0.0,
+    "mean_track_role_integrity": null,
+    "hard_failure_counts": {}
+  },
+  "files": []
+}
