@@ -13,8 +13,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import os
+import socket
 import sys
 from pathlib import Path
 
@@ -53,6 +53,27 @@ def _check_available() -> bool:
 
 
 AVAILABLE = _check_available()
+
+
+def _port_is_free(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("0.0.0.0", port))
+        except OSError:
+            return False
+    return True
+
+
+def _pick_server_port(preferred: int, max_offsets: int = 64) -> int:
+    """Use preferred port if free; otherwise scan upward (common when 7860 is stuck)."""
+    for offset in range(max_offsets):
+        p = preferred + offset
+        if _port_is_free(p):
+            return p
+    raise OSError(
+        f"No free TCP port in range {preferred}-{preferred + max_offsets - 1}. "
+        "Kill the old process: fuser -k 7860/tcp  OR  lsof -i :7860"
+    )
 
 
 # ── Generate ───────────────────────────────────────────────────────────
@@ -134,16 +155,8 @@ EXAMPLES = [
 
 
 def build_ui():
-    with gr.Blocks(
-        theme=gr.themes.Base(
-            primary_hue=gr.themes.colors.violet,
-            secondary_hue=gr.themes.colors.purple,
-            neutral_hue=gr.themes.colors.slate,
-            font=gr.themes.GoogleFont("Inter"),
-        ),
-        css=CSS,
-        title="ROOM",
-    ) as demo:
+    # Gradio 6+: theme/css belong on launch(), not Blocks()
+    with gr.Blocks(title="ROOM") as demo:
 
         gr.HTML("""
         <div class="main-header">
@@ -203,7 +216,12 @@ def build_ui():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=7860)
+    ap.add_argument(
+        "--port",
+        type=int,
+        default=int(os.environ.get("GRADIO_SERVER_PORT", "7860")),
+        help="Preferred port; if busy, next free port is used (override with GRADIO_SERVER_PORT).",
+    )
     ap.add_argument("--share", action="store_true")
     args = ap.parse_args()
 
@@ -212,8 +230,28 @@ def main():
     status = "READY" if AVAILABLE else "NOT INSTALLED (run: python scripts/setup_room.py)"
     print(f"\n  ROOM v0.1 | Engine: {status}\n")
 
+    preferred = args.port
+    server_port = _pick_server_port(preferred)
+    if server_port != preferred:
+        print(
+            f"  [ROOM] Port {preferred} busy; using {server_port} "
+            f"(free the old server with: fuser -k {preferred}/tcp)\n"
+        )
+
     demo = build_ui()
-    demo.launch(server_port=args.port, share=args.share, server_name="0.0.0.0")
+    _theme = gr.themes.Base(
+        primary_hue=gr.themes.colors.violet,
+        secondary_hue=gr.themes.colors.purple,
+        neutral_hue=gr.themes.colors.slate,
+        font=gr.themes.GoogleFont("Inter"),
+    )
+    demo.launch(
+        server_port=server_port,
+        share=args.share,
+        server_name="0.0.0.0",
+        theme=_theme,
+        css=CSS,
+    )
 
 
 if __name__ == "__main__":

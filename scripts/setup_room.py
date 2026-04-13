@@ -8,6 +8,15 @@ Pulls:
   3. Demucs         (stem separation)
   4. BasicPitch     (audio → MIDI)
 
+On Lambda / Ubuntu with apt ``python3-torch`` (CUDA 12): use a venv + matching wheels
+or you get ``libcudart.so.13`` when pip installs a newer torchaudio:
+
+  python3 scripts/bootstrap_venv_room.py
+  source .venv/bin/activate
+  python scripts/setup_room.py
+
+  (shell alternative: bash scripts/bootstrap_venv_room.sh)
+
 Usage:
   python scripts/setup_room.py
   python scripts/setup_room.py --skip-acestep   (if already installed)
@@ -91,8 +100,10 @@ def main():
         else:
             print("  Checkpoints already downloaded.")
 
-        # Install OpenVoice deps
+        # Install OpenVoice deps (avoid OpenVoice's old numpy pin pulling numpy 2.x)
         pip("librosa", "wavmark", "whisper-timestamped", "pydub")
+        # Keep NumPy 1.x for matplotlib / torch extensions on mixed installs
+        pip("numpy>=1.26,<2")
         print("  OpenVoice ready.")
     else:
         print("\n[2/4] OpenVoice — skipped")
@@ -131,6 +142,13 @@ def main():
   BasicPitch   : {'READY' if not args.skip_basicpitch else 'SKIPPED'}
 
   Config: {env_path}
+
+  If generation fails with libcudart.so.13: system PyTorch is CUDA 12 but pip
+  installed torchaudio for CUDA 13. Fix:
+
+    bash scripts/bootstrap_venv_room.sh
+    source .venv/bin/activate
+    python scripts/setup_room.py
 
   Quick test:
     python -m modelw.room "piano ballad, E minor, emotional" --stems --midi
