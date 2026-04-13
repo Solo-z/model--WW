@@ -36,6 +36,54 @@ if _ACESTEP_SRC.exists() and str(_ACESTEP_SRC) not in sys.path:
     sys.path.insert(0, str(_ACESTEP_SRC))
 
 
+def normalize_voice_ref_path(voice_ref: object) -> Optional[str]:
+    """
+    Resolve a voice file path from Gradio uploads.
+
+    Gradio versions may pass a filesystem path (str), a dict with ``path`` / ``name``,
+    or legacy tuple shapes — if we mis-handle this, cloning is skipped silently.
+    """
+    if voice_ref is None:
+        return None
+    if isinstance(voice_ref, str):
+        p = voice_ref.strip()
+        return p if p and os.path.isfile(p) else None
+    if isinstance(voice_ref, dict):
+        p = voice_ref.get("path") or voice_ref.get("name")
+        if isinstance(p, str):
+            p = p.strip()
+            return p if p and os.path.isfile(p) else None
+        return None
+    if isinstance(voice_ref, (list, tuple)) and len(voice_ref) > 0:
+        return normalize_voice_ref_path(voice_ref[0])
+    return None
+
+
+def caption_with_vocals_for_voice_clone(caption: str) -> str:
+    """
+    OpenVoice swaps timbre on *existing* singing/speech in the generated mix.
+    If ACE-Step returns an instrumental, there is almost nothing to clone.
+    """
+    t = (caption or "").strip()
+    if not t:
+        return "song with lead vocals, singing, emotional delivery"
+    low = t.lower()
+    hints = (
+        "vocal",
+        "sing",
+        "singing",
+        "voice",
+        "lyrics",
+        "choir",
+        "rap",
+        "spoken",
+        "lyric",
+    )
+    if any(h in low for h in hints):
+        return t
+    return f"{t}, prominent lead vocals, singing, close-mic vocal take"
+
+
 @dataclass
 class RoomConfig:
     """Configuration for the full ROOM pipeline."""
@@ -174,10 +222,13 @@ class RoomEngine:
             instrumental: If True, generate without vocals.
 
         Returns:
-            dict with keys: audio_path, voice_cloned_path, stems, midis, metadata
+            dict with keys: audio_path, voice_cloned_path, voice_clone_error, stems, midis, metadata
         """
         if not self._initialized:
             self.initialize()
+
+        voice_ref = normalize_voice_ref_path(voice_ref)
+        caption = caption_with_vocals_for_voice_clone(prompt) if voice_ref else (prompt or "").strip()
 
         out_dir = Path(save_dir or self.config.output_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -186,15 +237,22 @@ class RoomEngine:
         result = {
             "audio_path": None,
             "voice_cloned_path": None,
+            "voice_clone_error": None,
             "stems": {},
             "midis": {},
-            "metadata": {"prompt": prompt, "duration": duration, "seed": seed},
+            "metadata": {
+                "prompt": prompt,
+                "caption_for_acestep": caption,
+                "duration": duration,
+                "seed": seed,
+                "voice_ref_normalized": voice_ref,
+            },
         }
 
         # ── Step 1: Generate audio with ACE-Step ──────────────────────
         print(f"\n[ROOM] Step 1/4: Generating audio...")
         audio_path = self._generate_audio(
-            prompt=prompt,
+            prompt=caption,
             duration=duration,
             seed=seed,
             steps=inference_steps,
@@ -209,14 +267,21 @@ class RoomEngine:
         source_audio = audio_path
         if voice_ref and audio_path:
             print(f"[ROOM] Step 2/4: Cloning voice from {voice_ref}...")
-            cloned_path = self._clone_voice(
+            cloned_path, cerr = self._clone_voice(
                 source_audio=audio_path,
                 voice_ref=voice_ref,
                 output_path=str(out_dir / f"room_cloned_{ts}.wav"),
             )
             result["voice_cloned_path"] = cloned_path
+            result["voice_clone_error"] = cerr
             source_audio = cloned_path or audio_path
-            print(f"[ROOM] Voice cloned: {cloned_path}")
+            if cerr:
+                print(f"[ROOM] Voice clone failed, using ACE output: {cerr}")
+            else:
+                print(f"[ROOM] Voice cloned: {cloned_path}")
+        elif voice_ref and not audio_path:
+            result["voice_clone_error"] = "No ACE-Step audio to clone onto."
+            print("[ROOM] Step 2/4: Skipped (audio generation failed)")
         else:
             print("[ROOM] Step 2/4: Skipped (no voice reference)")
 
@@ -282,7 +347,7 @@ class RoomEngine:
 
     def _clone_voice(
         self, source_audio: str, voice_ref: str, output_path: str
-    ) -> Optional[str]:
+    ) -> tuple[Optional[str], Optional[str]]:
         try:
             self._load_openvoice()
 
@@ -300,10 +365,10 @@ class RoomEngine:
                 tgt_se=target_se,
                 output_path=output_path,
             )
-            return output_path
+            return output_path, None
         except Exception as e:
             print(f"[ROOM] Voice cloning failed: {e}")
-            return None
+            return None, str(e)
 
     def _split_stems(self, audio_path: str, output_dir: str) -> dict[str, str]:
         try:
@@ -367,7 +432,10 @@ class RoomEngine:
         """Standalone voice cloning without generating new audio."""
         if output_path is None:
             output_path = str(Path(self.config.output_dir) / "voice_cloned.wav")
-        return self._clone_voice(audio_path, voice_ref, output_path)
+        path, err = self._clone_voice(audio_path, voice_ref, output_path)
+        if err:
+            print(f"[ROOM] clone_voice: {err}")
+        return path
 
     def split_stems(self, audio_path: str, output_dir: Optional[str] = None) -> dict[str, str]:
         """Standalone stem separation."""

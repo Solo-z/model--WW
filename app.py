@@ -35,7 +35,8 @@ def _get_engine():
     if _engine is not None:
         return _engine
     try:
-        from modelw.room import RoomEngine, RoomConfig
+        from modelw.room import RoomConfig, RoomEngine
+
         _engine = RoomEngine(RoomConfig())
         _engine.initialize()
         return _engine
@@ -82,12 +83,19 @@ def generate(prompt, voice_ref, split_stems, extract_midi, duration, seed, steps
     if not AVAILABLE:
         raise gr.Error("ROOM not installed. Run: python scripts/setup_room.py")
 
+    from modelw.room import normalize_voice_ref_path
+
     engine = _get_engine()
 
     out_dir = str(_ROOT / "output" / "room")
     os.makedirs(out_dir, exist_ok=True)
 
-    voice_path = voice_ref if voice_ref else None
+    voice_path = normalize_voice_ref_path(voice_ref)
+    ref_problem = None
+    if voice_ref is not None and voice_path is None:
+        ref_problem = (
+            "Voice reference could not be read (need a saved upload path). Voice cloning was skipped."
+        )
 
     result = engine.generate(
         prompt=prompt,
@@ -119,8 +127,18 @@ def generate(prompt, voice_ref, split_stems, extract_midi, duration, seed, steps
     all_files = stem_files + midi_files
 
     info_parts = []
-    if result.get("voice_cloned_path"):
-        info_parts.append("Voice cloned")
+    if ref_problem:
+        info_parts.append(ref_problem)
+    meta = result.get("metadata") or {}
+    cap = meta.get("caption_for_acestep")
+    if voice_path and cap and cap.strip() != (prompt or "").strip():
+        info_parts.append("Prompt auto-expanded so the mix includes lead vocals (needed for cloning).")
+    if result.get("voice_clone_error"):
+        info_parts.append(f"Voice clone failed: {result['voice_clone_error']}")
+    elif result.get("voice_cloned_path"):
+        info_parts.append("Voice timbre applied (OpenVoice).")
+    elif voice_path:
+        info_parts.append("Voice ref set but no cloned output file was produced.")
     if result.get("stems"):
         info_parts.append(f"Stems: {', '.join(result['stems'].keys())}")
     if result.get("midis"):
@@ -174,7 +192,7 @@ def build_ui():
             )
 
             voice_ref = gr.Audio(
-                label="Voice Reference (optional — upload a clip of your voice)",
+                label="Voice Reference (optional —10–30s dry speech or singing; we match timbre to vocals in the generated track)",
                 type="filepath",
             )
 
