@@ -31,6 +31,16 @@ except ImportError:
 
 _ROOT = Path(__file__).resolve().parent
 _ACESTEP_SRC = _ROOT / "models" / "ace-step"
+
+# On HF Spaces the models folder won't exist until we clone them.
+# Run setup_spaces.py once at import time (safe to re-run; it's idempotent).
+if os.environ.get("SPACE_ID"):  # only on HF Spaces
+    try:
+        import setup_spaces
+        setup_spaces.setup()
+    except Exception as _se:
+        print(f"[setup_spaces] Warning: {_se}")
+
 if _ACESTEP_SRC.exists() and str(_ACESTEP_SRC) not in sys.path:
     sys.path.insert(0, str(_ACESTEP_SRC))
 
