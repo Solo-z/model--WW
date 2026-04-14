@@ -1,7 +1,7 @@
 # HF Spaces / ZeroGPU requirements
 # Torch stack comes pre-installed on Spaces GPU images — do NOT pin here
 # or you'll conflict with the base image.
-gradio>=6.0
+gradio==6.12.0
 huggingface_hub>=0.33
 spaces
 demucs
