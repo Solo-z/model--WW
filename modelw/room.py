@@ -271,7 +271,7 @@ class RoomEngine:
 
         # ── Step 1: Generate audio with ACE-Step ──────────────────────
         print(f"\n[ROOM] Step 1/4: Generating audio...")
-        audio_path = self._generate_audio(
+        audio_path, audio_err = self._generate_audio(
             prompt=caption,
             duration=duration,
             seed=seed,
@@ -282,6 +282,12 @@ class RoomEngine:
         )
         result["audio_path"] = audio_path
         print(f"[ROOM] Audio: {audio_path}")
+        if not audio_path:
+            raise RuntimeError(
+                audio_err
+                or "ACE-Step produced no audio file. On Hugging Face, check Container logs "
+                "(CUDA, OOM, missing weights under models/ace-step)."
+            )
 
         # ── Step 2: Voice cloning (if reference provided) ─────────────
         source_audio = audio_path
@@ -343,7 +349,8 @@ class RoomEngine:
 
     def _generate_audio(
         self, prompt, duration, seed, steps, guidance, instrumental, save_dir
-    ) -> Optional[str]:
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Returns (wav_path, error_message). error_message is set when path is None."""
         from acestep.inference import GenerationParams, GenerationConfig, generate_music
 
         params = GenerationParams(
@@ -361,9 +368,10 @@ class RoomEngine:
         )
 
         if result.success and result.audios:
-            return result.audios[0]["path"]
-        print(f"[ROOM] Audio generation failed: {result.error}")
-        return None
+            return result.audios[0]["path"], None
+        err = str(result.error) if result.error else "unknown error"
+        print(f"[ROOM] Audio generation failed: {err}")
+        return None, err
 
     def _clone_voice(
         self, source_audio: str, voice_ref: str, output_path: str

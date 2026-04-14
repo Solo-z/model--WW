@@ -169,9 +169,21 @@ def _generate_impl(prompt, voice_ref, split_stems, extract_midi, duration, seed,
     return audio_out, all_files if all_files else None, info
 
 
+# ZeroGPU defaults to ~60s GPU window — ROOM needs minutes (ACE-Step + optional stems/MIDI).
+def _zerogpu_budget(
+    prompt, voice_ref, split_stems, extract_midi, duration, seed, steps, guidance
+):
+    base = 540.0 + float(duration) * 3.0 + float(steps) * 4.0
+    if split_stems:
+        base += 420.0
+    if extract_midi:
+        base += 360.0
+    return int(min(max(base, 300.0), 1800.0))
+
+
 # Wrap with ZeroGPU decorator when running on HF Spaces; no-op otherwise.
 if _ZEROGPU:
-    generate = spaces.GPU(_generate_impl)
+    generate = spaces.GPU(duration=_zerogpu_budget)(_generate_impl)
 else:
     generate = _generate_impl
 

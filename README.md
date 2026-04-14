@@ -7,6 +7,7 @@ sdk: gradio
 sdk_version: 6.12.0
 app_file: app.py
 python_version: "3.10"
+startup_duration_timeout: 45m
 ---
 
 **Space build note:** README `python_version` is `3.10` so Linux installs `basic-pitch` with `tflite-runtime` instead of full TensorFlow (Python3.11+ on Linux pulls TensorFlow and conflicts with Demucs/PyTorch).
