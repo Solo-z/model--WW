@@ -29,3 +29,4 @@ peft
 transformers>=4.51.0,<4.58.0
 safetensors
 sentencepiece
+vector_quantize_pytorch

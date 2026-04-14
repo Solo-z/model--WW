@@ -129,28 +129,66 @@ class RoomEngine:
 
     # ── Lazy model loading ─────────────────────────────────────────────
 
+    def _ace_step_checkpoint_dir(self) -> str:
+        """Match ``InitServiceOrchestratorMixin.initialize_service`` checkpoint paths."""
+        if os.environ.get("ACESTEP_CHECKPOINTS_DIR"):
+            from acestep.model_downloader import get_checkpoints_dir
+
+            return str(get_checkpoints_dir())
+        root = (self.config.acestep_root or "").strip()
+        if root:
+            return os.path.join(root, "checkpoints")
+        from acestep.model_downloader import get_checkpoints_dir
+
+        return str(get_checkpoints_dir())
+
     def _load_acestep(self):
         if self._acestep_dit is not None:
             return
         from acestep.handler import AceStepHandler
         from acestep.llm_inference import LLMHandler
 
+        ckpt_dir = self._ace_step_checkpoint_dir()
+
         print("[ROOM] Loading ACE-Step DiT...")
         self._acestep_dit = AceStepHandler()
-        self._acestep_dit.initialize_service(
+        dit_msg, dit_ok = self._acestep_dit.initialize_service(
             project_root=self.config.acestep_root,
             config_path=self.config.dit_config,
             device=self.config.device,
         )
+        if not dit_ok:
+            raise RuntimeError(
+                dit_msg
+                or "ACE-Step DiT initialize_service failed. See Container logs for download/OOM errors."
+            )
 
         print("[ROOM] Loading ACE-Step LM...")
         self._acestep_llm = LLMHandler()
-        self._acestep_llm.initialize(
-            checkpoint_dir=self.config.acestep_root,
+        llm_msg, llm_ok = self._acestep_llm.initialize(
+            checkpoint_dir=ckpt_dir,
             lm_model_path=self.config.lm_model,
             backend=self.config.lm_backend,
             device=self.config.device,
         )
+        if not llm_ok:
+            raise RuntimeError(
+                llm_msg
+                or f"ACE-Step LM failed to load from {ckpt_dir!r}. See Container logs."
+            )
+
+        h = self._acestep_dit
+        if (
+            h.model is None
+            or h.vae is None
+            or h.text_tokenizer is None
+            or h.text_encoder is None
+        ):
+            raise RuntimeError(
+                "ACE-Step DiT reported success but model/VAE/text weights are missing. "
+                f"Expected assets under {ckpt_dir!r}."
+            )
+
         print("[ROOM] ACE-Step ready.")
 
     def _load_openvoice(self):

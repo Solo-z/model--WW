@@ -37,6 +37,20 @@ except ImportError:
     ACESTEP_AVAILABLE = False
 
 
+def _ace_step_checkpoint_dir(acestep_root: str) -> str:
+    """Same resolution as ACE-Step ``initialize_service`` for the checkpoints tree."""
+    if os.environ.get("ACESTEP_CHECKPOINTS_DIR"):
+        from acestep.model_downloader import get_checkpoints_dir
+
+        return str(get_checkpoints_dir())
+    root = (acestep_root or "").strip()
+    if root:
+        return os.path.join(root, "checkpoints")
+    from acestep.model_downloader import get_checkpoints_dir
+
+    return str(get_checkpoints_dir())
+
+
 @dataclass
 class ACEStepConfig:
     """Configuration for the ACE-Step integration."""
@@ -160,19 +174,30 @@ class ACEStepBridge:
             )
 
         self.dit_handler = AceStepHandler()
-        self.dit_handler.initialize_service(
+        dit_msg, dit_ok = self.dit_handler.initialize_service(
             project_root=self.config.acestep_root,
             config_path=self.config.dit_config,
             device=self.config.device,
         )
+        if not dit_ok:
+            raise RuntimeError(
+                dit_msg
+                or "ACE-Step DiT initialize_service failed. See logs for download/OOM errors."
+            )
 
+        ckpt_dir = _ace_step_checkpoint_dir(self.config.acestep_root)
         self.llm_handler = LLMHandler()
-        self.llm_handler.initialize(
-            checkpoint_dir=self.config.acestep_root,
+        llm_msg, llm_ok = self.llm_handler.initialize(
+            checkpoint_dir=ckpt_dir,
             lm_model_path=self.config.lm_model,
             backend=self.config.lm_backend,
             device=self.config.device,
         )
+        if not llm_ok:
+            raise RuntimeError(
+                llm_msg or f"ACE-Step LM failed to load from {ckpt_dir!r}."
+            )
+
         self._initialized = True
         print(f"[ACEStepBridge] Initialized: DiT={self.config.dit_config}, LM={self.config.lm_model}")
 
