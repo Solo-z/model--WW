@@ -50,14 +50,24 @@ if _ACESTEP_SRC.exists() and str(_ACESTEP_SRC) not in sys.path:
 _engine = None
 
 
+def _default_room_config():
+    """HF Spaces: use 0.6B LM + PyTorch backend (ACE-Step docs pair vllm with 1.7B)."""
+    from modelw.room import RoomConfig
+
+    if os.environ.get("SPACE_ID"):
+        print("[ROOM] Space runtime: lm_model=acestep-5Hz-lm-0.6B, lm_backend=pt", flush=True)
+        return RoomConfig(lm_model="acestep-5Hz-lm-0.6B", lm_backend="pt")
+    return RoomConfig()
+
+
 def _get_engine():
     global _engine
     if _engine is not None:
         return _engine
     try:
-        from modelw.room import RoomConfig, RoomEngine
+        from modelw.room import RoomEngine
 
-        _engine = RoomEngine(RoomConfig())
+        _engine = RoomEngine(_default_room_config())
         _engine.initialize()
         return _engine
     except Exception as e:
@@ -297,7 +307,6 @@ def main():
             f"(free the old server with: fuser -k {preferred}/tcp)\n"
         )
 
-    demo = build_ui()
     _theme = gr.themes.Base(
         primary_hue=gr.themes.colors.violet,
         secondary_hue=gr.themes.colors.purple,
@@ -310,8 +319,12 @@ def main():
         server_name="0.0.0.0",
         theme=_theme,
         css=CSS,
+        ssr_mode=False,
     )
 
+
+# Hugging Face mounts `demo` at import time; module-level avoids "demo not found in __main__".
+demo = build_ui()
 
 if __name__ == "__main__":
     main()
