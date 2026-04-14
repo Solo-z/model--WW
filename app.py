@@ -20,12 +20,13 @@ from pathlib import Path
 
 import gradio as gr
 
-# ZeroGPU (HF Spaces) — wrap generate with @spaces.GPU so the Space gets
-# allocated a GPU only during inference (saves quota between requests).
+# ZeroGPU (HF Spaces) — wrap generate with spaces.GPU so the Space gets a GPU
+# only during inference. The PyPI `spaces` package must expose `.GPU`; another
+# module named `spaces` may exist locally without it.
 try:
-    import spaces  # only exists on HF Spaces runtime
+    import spaces
 
-    _ZEROGPU = True
+    _ZEROGPU = hasattr(spaces, "GPU")
 except ImportError:
     _ZEROGPU = False
 
