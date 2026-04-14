@@ -20,6 +20,15 @@ from pathlib import Path
 
 import gradio as gr
 
+# ZeroGPU (HF Spaces) — wrap generate with @spaces.GPU so the Space gets
+# allocated a GPU only during inference (saves quota between requests).
+try:
+    import spaces  # only exists on HF Spaces runtime
+
+    _ZEROGPU = True
+except ImportError:
+    _ZEROGPU = False
+
 _ROOT = Path(__file__).resolve().parent
 _ACESTEP_SRC = _ROOT / "models" / "ace-step"
 if _ACESTEP_SRC.exists() and str(_ACESTEP_SRC) not in sys.path:
@@ -79,7 +88,8 @@ def _pick_server_port(preferred: int, max_offsets: int = 64) -> int:
 
 # ── Generate ───────────────────────────────────────────────────────────
 
-def generate(prompt, voice_ref, split_stems, extract_midi, duration, seed, steps, guidance):
+def _generate_impl(prompt, voice_ref, split_stems, extract_midi, duration, seed, steps, guidance):
+    """Core generation logic — separated so ZeroGPU decorator can wrap it."""
     if not AVAILABLE:
         raise gr.Error("ROOM not installed. Run: python scripts/setup_room.py")
 
@@ -146,6 +156,13 @@ def generate(prompt, voice_ref, split_stems, extract_midi, duration, seed, steps
     info = " | ".join(info_parts) if info_parts else "Generated"
 
     return audio_out, all_files if all_files else None, info
+
+
+# Wrap with ZeroGPU decorator when running on HF Spaces; no-op otherwise.
+if _ZEROGPU:
+    generate = spaces.GPU(_generate_impl)
+else:
+    generate = _generate_impl
 
 
 # ── UI ─────────────────────────────────────────────────────────────────
