@@ -51,12 +51,12 @@ _engine = None
 
 
 def _default_room_config():
-    """HF Spaces: use 0.6B LM + PyTorch backend (ACE-Step docs pair vllm with 1.7B)."""
+    """HF Spaces: use 1.7B LM + PyTorch backend (the only LM shipped by ACE-Step)."""
     from modelw.room import RoomConfig
 
     if os.environ.get("SPACE_ID"):
-        print("[ROOM] Space runtime: lm_model=acestep-5Hz-lm-0.6B, lm_backend=pt", flush=True)
-        return RoomConfig(lm_model="acestep-5Hz-lm-0.6B", lm_backend="pt")
+        print("[ROOM] Space runtime: lm_model=acestep-5Hz-lm-1.7B, lm_backend=pt", flush=True)
+        return RoomConfig(lm_model="acestep-5Hz-lm-1.7B", lm_backend="pt")
     return RoomConfig()
 
 
