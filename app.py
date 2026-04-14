@@ -101,89 +101,90 @@ def _pick_server_port(preferred: int, max_offsets: int = 64) -> int:
 
 def _generate_impl(prompt, voice_ref, split_stems, extract_midi, duration, seed, steps, guidance):
     """Core generation logic — separated so ZeroGPU decorator can wrap it."""
+    import traceback
+
     if not AVAILABLE:
         raise gr.Error("ROOM not installed. Run: python scripts/setup_room.py")
 
     from modelw.room import normalize_voice_ref_path
 
-    engine = _get_engine()
+    try:
+        engine = _get_engine()
 
-    out_dir = str(_ROOT / "output" / "room")
-    os.makedirs(out_dir, exist_ok=True)
+        out_dir = str(_ROOT / "output" / "room")
+        os.makedirs(out_dir, exist_ok=True)
 
-    voice_path = normalize_voice_ref_path(voice_ref)
-    ref_problem = None
-    if voice_ref is not None and voice_path is None:
-        ref_problem = (
-            "Voice reference could not be read (need a saved upload path). Voice cloning was skipped."
+        voice_path = normalize_voice_ref_path(voice_ref)
+        ref_problem = None
+        if voice_ref is not None and voice_path is None:
+            ref_problem = (
+                "Voice reference could not be read (need a saved upload path). Voice cloning was skipped."
+            )
+
+        result = engine.generate(
+            prompt=prompt,
+            voice_ref=voice_path,
+            split_stems=split_stems,
+            extract_midi=extract_midi,
+            duration=float(duration),
+            seed=int(seed),
+            inference_steps=int(steps),
+            guidance_scale=float(guidance),
+            save_dir=out_dir,
         )
 
-    result = engine.generate(
-        prompt=prompt,
-        voice_ref=voice_path,
-        split_stems=split_stems,
-        extract_midi=extract_midi,
-        duration=float(duration),
-        seed=int(seed),
-        inference_steps=int(steps),
-        guidance_scale=float(guidance),
-        save_dir=out_dir,
-    )
+        # Primary audio output
+        audio_out = result.get("voice_cloned_path") or result.get("audio_path")
 
-    # Primary audio output
-    audio_out = result.get("voice_cloned_path") or result.get("audio_path")
+        # Stem files for download
+        stem_files = []
+        for name, path in result.get("stems", {}).items():
+            if path and os.path.exists(path):
+                stem_files.append(path)
 
-    # Stem files for download
-    stem_files = []
-    for name, path in result.get("stems", {}).items():
-        if path and os.path.exists(path):
-            stem_files.append(path)
+        # MIDI files for download
+        midi_files = []
+        for name, path in result.get("midis", {}).items():
+            if path and os.path.exists(path):
+                midi_files.append(path)
 
-    # MIDI files for download
-    midi_files = []
-    for name, path in result.get("midis", {}).items():
-        if path and os.path.exists(path):
-            midi_files.append(path)
+        all_files = stem_files + midi_files
 
-    all_files = stem_files + midi_files
+        info_parts = []
+        if ref_problem:
+            info_parts.append(ref_problem)
+        meta = result.get("metadata") or {}
+        cap = meta.get("caption_for_acestep")
+        if voice_path and cap and cap.strip() != (prompt or "").strip():
+            info_parts.append("Prompt auto-expanded so the mix includes lead vocals (needed for cloning).")
+        if result.get("voice_clone_error"):
+            info_parts.append(f"Voice clone failed: {result['voice_clone_error']}")
+        elif result.get("voice_cloned_path"):
+            info_parts.append("Voice timbre applied (OpenVoice).")
+        elif voice_path:
+            info_parts.append("Voice ref set but no cloned output file was produced.")
+        if result.get("stems"):
+            info_parts.append(f"Stems: {', '.join(result['stems'].keys())}")
+        if result.get("midis"):
+            info_parts.append(f"MIDI: {', '.join(result['midis'].keys())}")
+        info = " | ".join(info_parts) if info_parts else "Generated"
 
-    info_parts = []
-    if ref_problem:
-        info_parts.append(ref_problem)
-    meta = result.get("metadata") or {}
-    cap = meta.get("caption_for_acestep")
-    if voice_path and cap and cap.strip() != (prompt or "").strip():
-        info_parts.append("Prompt auto-expanded so the mix includes lead vocals (needed for cloning).")
-    if result.get("voice_clone_error"):
-        info_parts.append(f"Voice clone failed: {result['voice_clone_error']}")
-    elif result.get("voice_cloned_path"):
-        info_parts.append("Voice timbre applied (OpenVoice).")
-    elif voice_path:
-        info_parts.append("Voice ref set but no cloned output file was produced.")
-    if result.get("stems"):
-        info_parts.append(f"Stems: {', '.join(result['stems'].keys())}")
-    if result.get("midis"):
-        info_parts.append(f"MIDI: {', '.join(result['midis'].keys())}")
-    info = " | ".join(info_parts) if info_parts else "Generated"
-
-    return audio_out, all_files if all_files else None, info
+        return audio_out, all_files if all_files else None, info
+    except gr.Error:
+        raise
+    except Exception as e:
+        print(traceback.format_exc(), flush=True)
+        msg = str(e).strip() or "(no message)"
+        raise gr.Error(f"{type(e).__name__}: {msg}\n\nIf this persists, open the Space **Logs → Container** tab for the full traceback.")
 
 
-# ZeroGPU defaults to ~60s GPU window — ROOM needs minutes (ACE-Step + optional stems/MIDI).
-def _zerogpu_budget(
-    prompt, voice_ref, split_stems, extract_midi, duration, seed, steps, guidance
-):
-    base = 540.0 + float(duration) * 3.0 + float(steps) * 4.0
-    if split_stems:
-        base += 420.0
-    if extract_midi:
-        base += 360.0
-    return int(min(max(base, 300.0), 1800.0))
-
+# ZeroGPU defaults to ~60s GPU window — ROOM needs many minutes (ACE-Step + optional stems/MIDI).
+# Use a fixed ceiling; dynamic callables differ across `spaces` versions.
+_ZEROGPU_GPU_SECONDS = 1200
 
 # Wrap with ZeroGPU decorator when running on HF Spaces; no-op otherwise.
 if _ZEROGPU:
-    generate = spaces.GPU(duration=_zerogpu_budget)(_generate_impl)
+    generate = spaces.GPU(duration=_ZEROGPU_GPU_SECONDS)(_generate_impl)
 else:
     generate = _generate_impl
 
