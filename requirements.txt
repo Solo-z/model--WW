@@ -1,8 +1,10 @@
 # HF Spaces — pin heavy deps first. Use README python_version 3.10: basic-pitch on Linux 3.11+
 # pulls TensorFlow and conflicts with Demucs/PyTorch; 3.10 uses tflite-runtime instead.
 #
-# HF Gradio image pre-installs torch==2.9.1. Demucs otherwise pulls a newer torchaudio whose
-# .so is ABI-incompatible → "Could not load ... _torchaudio.so". Keep torch stack aligned.
+# Torch stack: install torch + torchaudio from the SAME CUDA wheel index. Mixing HF base torch
+# with PyPI-only torchaudio breaks native extensions (_torchaudio.abi3.so).
+--index-url https://download.pytorch.org/whl/cu128
+--extra-index-url https://pypi.org/simple
 torch==2.9.1
 torchaudio==2.9.1
 pandas==2.2.3
