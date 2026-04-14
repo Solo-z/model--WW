@@ -1,11 +1,14 @@
-# HF Spaces / ZeroGPU requirements
-# Torch stack comes pre-installed on Spaces GPU images — do NOT pin here
-# or you'll conflict with the base image.
+# HF Spaces — pin heavy deps first. Use README python_version 3.10: basic-pitch on Linux 3.11+
+# pulls TensorFlow and conflicts with Demucs/PyTorch; 3.10 uses tflite-runtime instead.
+pandas==2.2.3
+numpy>=1.26.0
+basic-pitch==0.4.0
+resampy>=0.2.2,<0.4.3
+# Gradio stack
 gradio==6.12.0
 huggingface_hub>=0.33
 spaces
 demucs
-basic-pitch
 librosa
 wavmark
 pydub

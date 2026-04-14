@@ -1,3 +1,16 @@
+---
+title: MODEL-W
+emoji: 🎵
+colorFrom: purple
+colorTo: blue
+sdk: gradio
+sdk_version: 6.12.0
+app_file: app.py
+python_version: "3.10"
+---
+
+**Space build note:** README `python_version` is `3.10` so Linux installs `basic-pitch` with `tflite-runtime` instead of full TensorFlow (Python3.11+ on Linux pulls TensorFlow and conflicts with Demucs/PyTorch).
+
 # MODEL-W
 
 **Music Foundation Model — MIDI + Audio Generation**
