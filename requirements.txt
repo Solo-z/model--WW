@@ -1,5 +1,10 @@
 # HF Spaces — pin heavy deps first. Use README python_version 3.10: basic-pitch on Linux 3.11+
 # pulls TensorFlow and conflicts with Demucs/PyTorch; 3.10 uses tflite-runtime instead.
+#
+# HF Gradio image pre-installs torch==2.9.1. Demucs otherwise pulls a newer torchaudio whose
+# .so is ABI-incompatible → "Could not load ... _torchaudio.so". Keep torch stack aligned.
+torch==2.9.1
+torchaudio==2.9.1
 pandas==2.2.3
 numpy>=1.26.0
 basic-pitch==0.4.0
