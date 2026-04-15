@@ -188,9 +188,9 @@ def _generate_impl(prompt, voice_ref, split_stems, extract_midi, duration, seed,
         raise gr.Error(f"{type(e).__name__}: {msg}\n\nIf this persists, open the Space **Logs → Container** tab for the full traceback.")
 
 
-# ZeroGPU defaults to ~60s GPU window — ROOM needs many minutes (ACE-Step + optional stems/MIDI).
-# Use a fixed ceiling; dynamic callables differ across `spaces` versions.
-_ZEROGPU_GPU_SECONDS = 1200
+# ZeroGPU free-tier caps at 300s. Request that as the ceiling;
+# generation usually finishes well under this.
+_ZEROGPU_GPU_SECONDS = 300
 
 # Wrap with ZeroGPU decorator when running on HF Spaces; no-op otherwise.
 if _ZEROGPU:
