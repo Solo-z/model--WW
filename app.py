@@ -109,31 +109,49 @@ def _pick_server_port(preferred: int, max_offsets: int = 64) -> int:
 
 # ── Generate ───────────────────────────────────────────────────────────
 
-def _generate_impl(prompt, voice_ref, split_stems, extract_midi, duration, seed, steps, guidance):
+def _friendly_error(exc: Exception) -> str:
+    """Translate cryptic stack traces into something a human can act on."""
+    msg = str(exc).lower()
+    if "duration" in msg and ("maximum" in msg or "larger than" in msg):
+        return ("Generation requested more GPU time than your account is allowed. "
+                "Try a shorter duration, fewer inference steps, or sign in to HuggingFace for a higher quota.")
+    if "out of memory" in msg or "cuda oom" in msg or "outofmemory" in msg:
+        return "Ran out of GPU memory. Try a shorter duration or fewer inference steps."
+    if "model not fully initialized" in msg:
+        return ("The model is still warming up after a restart. Wait 30 seconds and try again. "
+                "If it persists the Space needs a rebuild.")
+    if "no module named" in msg or "modulenotfounderror" in msg:
+        return f"A dependency is missing on the Space. The Space needs a rebuild. ({exc})"
+    if "cuda" in msg and ("not available" in msg or "no device" in msg):
+        return "GPU is not available right now. ZeroGPU may be at capacity — try again in a minute."
+    if "timeout" in msg or "timed out" in msg:
+        return "Request timed out. Try a shorter duration or simpler prompt."
+    return str(exc).strip() or "Unknown error. Check the Space's Container logs for details."
+
+
+def _generate_impl(prompt, split_stems, extract_midi,
+                   duration, seed, steps, guidance,
+                   progress=gr.Progress(track_tqdm=True)):
     """Core generation logic — separated so ZeroGPU decorator can wrap it."""
     import traceback
 
     if not AVAILABLE:
-        raise gr.Error("ROOM not installed. Run: python scripts/setup_room.py")
+        raise gr.Error("ROOM not installed on this Space. The build is incomplete.")
 
-    from modelw.room import normalize_voice_ref_path
+    if not (prompt or "").strip():
+        raise gr.Error("Add a prompt first — describe the music you want.")
 
     try:
+        progress(0.02, desc="Warming up engine…")
         engine = _get_engine()
 
         out_dir = str(_ROOT / "output" / "room")
         os.makedirs(out_dir, exist_ok=True)
 
-        voice_path = normalize_voice_ref_path(voice_ref)
-        ref_problem = None
-        if voice_ref is not None and voice_path is None:
-            ref_problem = (
-                "Voice reference could not be read (need a saved upload path). Voice cloning was skipped."
-            )
-
+        progress(0.10, desc="Generating audio (ACE-Step)…")
         result = engine.generate(
             prompt=prompt,
-            voice_ref=voice_path,
+            voice_ref=None,
             split_stems=split_stems,
             extract_midi=extract_midi,
             duration=float(duration),
@@ -142,17 +160,15 @@ def _generate_impl(prompt, voice_ref, split_stems, extract_midi, duration, seed,
             guidance_scale=float(guidance),
             save_dir=out_dir,
         )
+        progress(0.95, desc="Finalising…")
 
-        # Primary audio output
-        audio_out = result.get("voice_cloned_path") or result.get("audio_path")
+        audio_out = result.get("audio_path")
 
-        # Stem files for download
         stem_files = []
         for name, path in result.get("stems", {}).items():
             if path and os.path.exists(path):
                 stem_files.append(path)
 
-        # MIDI files for download
         midi_files = []
         for name, path in result.get("midis", {}).items():
             if path and os.path.exists(path):
@@ -161,31 +177,19 @@ def _generate_impl(prompt, voice_ref, split_stems, extract_midi, duration, seed,
         all_files = stem_files + midi_files
 
         info_parts = []
-        if ref_problem:
-            info_parts.append(ref_problem)
-        meta = result.get("metadata") or {}
-        cap = meta.get("caption_for_acestep")
-        if voice_path and cap and cap.strip() != (prompt or "").strip():
-            info_parts.append("Prompt auto-expanded so the mix includes lead vocals (needed for cloning).")
-        if result.get("voice_clone_error"):
-            info_parts.append(f"Voice clone failed: {result['voice_clone_error']}")
-        elif result.get("voice_cloned_path"):
-            info_parts.append("Voice timbre applied (OpenVoice).")
-        elif voice_path:
-            info_parts.append("Voice ref set but no cloned output file was produced.")
         if result.get("stems"):
             info_parts.append(f"Stems: {', '.join(result['stems'].keys())}")
         if result.get("midis"):
             info_parts.append(f"MIDI: {', '.join(result['midis'].keys())}")
-        info = " | ".join(info_parts) if info_parts else "Generated"
+        info = " · ".join(info_parts) if info_parts else "Generated."
 
+        progress(1.0, desc="Done.")
         return audio_out, all_files if all_files else None, info
     except gr.Error:
         raise
     except Exception as e:
         print(traceback.format_exc(), flush=True)
-        msg = str(e).strip() or "(no message)"
-        raise gr.Error(f"{type(e).__name__}: {msg}\n\nIf this persists, open the Space **Logs → Container** tab for the full traceback.")
+        raise gr.Error(_friendly_error(e))
 
 
 # ZeroGPU: anonymous/free-tier users have a low cap (~120s).
@@ -202,69 +206,292 @@ else:
 # ── UI ─────────────────────────────────────────────────────────────────
 
 CSS = """
-/* Black canvas, cinematic */
-gradio-app, .gradio-container, body {
+/* ── Full-bleed tree as page background ──────────────────────────── */
+html, body, gradio-app {
     background: #000 !important;
-    color: #e5e5e5 !important;
+    color: #f5f5f5 !important;
     font-family: 'Inter', -apple-system, sans-serif;
+    margin: 0 !important;
+    padding: 0 !important;
 }
-.gradio-container { max-width: 920px !important; margin: 0 auto !important; }
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url('/gradio_api/file=assets/room_tree.png');
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+    background-color: #000;
+    opacity: 0.55;
+    mix-blend-mode: screen;
+    z-index: 0;
+    pointer-events: none;
+}
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%);
+    z-index: 1;
+    pointer-events: none;
+}
+.gradio-container {
+    position: relative;
+    z-index: 10 !important;
+    max-width: 760px !important;
+    margin: 0 auto !important;
+    padding: 5vh 24px 80px !important;
+    background: transparent !important;
+}
 
-/* Hero */
-.room-hero {
-    width: 100%;
-    margin: 0 auto 32px auto;
+/* ── Hero text — sits over the tree ──────────────────────────────── */
+.room-hero { text-align: center; padding: 8vh 0 6vh 0; }
+.room-hero h1 {
+    font-size: clamp(5rem, 12vw, 11rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    margin: 0 0 16px 0;
+    color: #fff;
+    user-select: none;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.7);
+}
+.room-hero p {
+    font-size: clamp(0.7rem, 1vw, 1rem);
+    font-weight: 300;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+    margin: 0;
+    padding-left: 0.5em;
+}
+
+/* Intro paragraph */
+.room-intro {
+    max-width: 560px;
+    margin: 0 auto 56px auto;
     text-align: center;
-    background: #000;
-}
-.room-hero img {
-    width: 100%;
-    max-width: 920px;
-    display: block;
-    margin: 0 auto;
+    color: rgba(255,255,255,0.65);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    font-weight: 300;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.7);
 }
 
-/* Inputs */
+/* ── Inputs are nearly invisible — tree shows through ────────────── */
+.gradio-container .block,
+.gradio-container .form,
+.gradio-container .gr-box,
+.gradio-container .gr-panel {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Prompt bar — single hairline rectangle, see-through */
+.prompt-box {
+    margin: 0 auto 24px auto !important;
+}
 .prompt-box textarea {
     font-size: 1.05em !important;
-    background: #0a0a0a !important;
-    border: 1px solid #1f1f1f !important;
-    color: #f5f5f5 !important;
+    background: rgba(0,0,0,0.35) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    border-radius: 4px !important;
+    color: #fff !important;
+    text-align: center;
+    padding: 18px 20px !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: border-color 0.25s ease, background 0.25s ease;
 }
-input, textarea, select, .gr-box, .gr-input, .gr-panel {
-    background: #0a0a0a !important;
-    border-color: #1f1f1f !important;
-    color: #e5e5e5 !important;
+.prompt-box textarea:focus {
+    background: rgba(0,0,0,0.55) !important;
+    border-color: rgba(255,255,255,0.5) !important;
+    outline: none !important;
+}
+.prompt-box textarea::placeholder {
+    color: rgba(255,255,255,0.45) !important;
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
 }
 
-/* Generate button */
-.gr-button-primary, button.primary {
+input, textarea, select {
+    background: rgba(0,0,0,0.35) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+    color: #f5f5f5 !important;
+}
+
+/* Toggle row — minimal pills */
+.toggles-row {
+    justify-content: center !important;
+    gap: 12px !important;
+    margin-bottom: 24px !important;
+}
+.toggles-row .gr-checkbox label {
+    background: rgba(0,0,0,0.4) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    border-radius: 999px !important;
+    padding: 8px 18px !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.2em !important;
+    text-transform: uppercase !important;
+    color: rgba(255,255,255,0.6) !important;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.toggles-row .gr-checkbox input[type="checkbox"]:checked + label,
+.toggles-row .gr-checkbox label:has(input:checked) {
+    background: #fff !important;
+    color: #000 !important;
+    border-color: #fff !important;
+}
+
+/* ── Labels — tiny uppercase, fashion-brand feel ─────────────────── */
+label, .gr-input-label, span[data-testid="block-label"] {
+    color: rgba(255,255,255,0.55) !important;
+    font-size: 0.7em !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.2em !important;
+    text-transform: uppercase !important;
+}
+
+/* ── Generate button — large, dramatic, pulses on hover ──────────── */
+.generate-btn, .gr-button-primary, button.primary, .gradio-container button.lg {
     background: #fff !important;
     color: #000 !important;
     border: none !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.02em !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3em !important;
     text-transform: uppercase !important;
-    font-size: 0.9em !important;
-    padding: 14px 28px !important;
+    font-size: 0.95em !important;
+    padding: 22px 36px !important;
+    border-radius: 4px !important;
+    margin: 16px 0 !important;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s cubic-bezier(.2,.9,.3,1.2),
+                box-shadow 0.25s ease,
+                letter-spacing 0.25s ease;
+    box-shadow: 0 4px 24px rgba(255,255,255,0.08);
 }
-.gr-button-primary:hover, button.primary:hover {
-    background: #d4d4d4 !important;
+.generate-btn:hover, .gr-button-primary:hover, button.primary:hover {
+    background: #fff !important;
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 8px 32px rgba(255,255,255,0.18);
+    letter-spacing: 0.35em !important;
+}
+.generate-btn:active { transform: translateY(0) scale(0.99); }
+
+/* While generating, button glows softly */
+.generate-btn:disabled,
+.gr-button-primary:disabled {
+    background: #fff !important;
+    color: #000 !important;
+    opacity: 1 !important;
+    animation: room-pulse 1.6s ease-in-out infinite;
+}
+@keyframes room-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+    50%      { box-shadow: 0 0 28px 6px rgba(255,255,255,0.18); }
 }
 
-/* Labels */
-label, .gr-input-label, span[data-testid="block-label"] {
-    color: #a3a3a3 !important;
-    font-size: 0.85em !important;
-    letter-spacing: 0.04em !important;
-    text-transform: uppercase !important;
+/* ── Generation visuals — animated bars while loading ────────────── */
+.progress, .progress-text, [class*="Progress"], [class*="progress"] {
+    color: #fff !important;
+    background: transparent !important;
+}
+.progress-bar, [class*="progressBar"] {
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.2),
+        rgba(255,255,255,0.95),
+        rgba(255,255,255,0.2)) !important;
+    background-size: 200% 100% !important;
+    animation: room-shimmer 1.4s linear infinite !important;
+    height: 2px !important;
+    border-radius: 2px !important;
+}
+@keyframes room-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
-/* Accordion + sections */
-.gr-accordion { background: #0a0a0a !important; border: 1px solid #1f1f1f !important; }
-hr { border-color: #1f1f1f !important; }
+/* Loading text */
+.gr-progress-text {
+    text-align: center;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.3em !important;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7) !important;
+    padding: 16px 0 !important;
+}
 
-footer { display: none !important; }
+/* ── Output panels ───────────────────────────────────────────────── */
+.audio-out audio {
+    width: 100% !important;
+    margin-top: 16px;
+    filter: grayscale(100%) invert(0%);
+}
+.files-out, .info-line {
+    margin-top: 12px !important;
+}
+.info-line p {
+    text-align: center;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.15em !important;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55) !important;
+}
+
+/* ── Accordion ───────────────────────────────────────────────────── */
+.gr-accordion { background: rgba(10,10,10,0.45) !important; }
+
+/* ── Footer / chrome ─────────────────────────────────────────────── */
+footer, .footer, .built-with { display: none !important; }
+hr { border-color: rgba(255,255,255,0.06) !important; }
+
+/* ── Examples styling ────────────────────────────────────────────── */
+.gr-examples button, .gr-sample-textbox {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: rgba(255,255,255,0.75) !important;
+}
+
+/* ── Strict monochrome — purge any residual color from Gradio ────── */
+.gradio-container *:not(svg):not(path) {
+    --color-accent: #ffffff !important;
+    --color-accent-soft: rgba(255,255,255,0.12) !important;
+    --primary-50: #f5f5f5 !important;
+    --primary-100: #e5e5e5 !important;
+    --primary-200: #d4d4d4 !important;
+    --primary-300: #a3a3a3 !important;
+    --primary-400: #737373 !important;
+    --primary-500: #525252 !important;
+    --primary-600: #404040 !important;
+    --primary-700: #262626 !important;
+    --primary-800: #171717 !important;
+    --primary-900: #0a0a0a !important;
+}
+
+/* Sliders — grayscale only */
+input[type="range"] { accent-color: #fff !important; }
+.gr-slider .noUi-connect { background: #fff !important; }
+.gr-slider .noUi-handle { background: #fff !important; border: none !important; }
+
+/* Checkboxes — grayscale */
+input[type="checkbox"] { accent-color: #fff !important; }
+
+/* Progress bar — white */
+.progress-bar, .progress-text { color: #fff !important; }
+[class*="progress"] [style*="background"] { background: #fff !important; }
+
+/* Audio player */
+.gr-audio, audio { filter: grayscale(100%); }
+
+/* Selection */
+::selection { background: rgba(255,255,255,0.2); color: #fff; }
 """
 
 EXAMPLES = [
@@ -283,46 +510,52 @@ def build_ui():
 
         gr.HTML("""
         <div class="room-hero">
-            <img src="/gradio_api/file=assets/room_tree.png" alt="ROOM" />
+            <h1>ROOM</h1>
+            <p>A Foundation Model for Music Production</p>
+        </div>
+
+        <div class="room-intro">
+            ROOM turns a written description into a finished track.
+            Upload a voice reference and the lead vocal will match your timbre.
+            Optional stem separation and MIDI extraction for further production.
         </div>
         """)
 
         with gr.Column():
             prompt = gr.Textbox(
-                label="Prompt",
-                placeholder="piano ballad, E minor, emotional, soft vocals...",
-                lines=3,
+                label="",
+                placeholder="describe the track — genre, key, BPM, mood, instruments…",
+                lines=2,
                 elem_classes=["prompt-box"],
+                show_label=False,
             )
 
-            voice_ref = gr.Audio(
-                label="Voice Reference (optional —10–30s dry speech or singing; we match timbre to vocals in the generated track)",
-                type="filepath",
-            )
+            with gr.Row(elem_classes=["toggles-row"]):
+                split_stems = gr.Checkbox(value=False, label="Stems")
+                extract_midi = gr.Checkbox(value=False, label="MIDI")
 
-            with gr.Row():
-                split_stems = gr.Checkbox(value=False, label="Split to stems (vocals, drums, bass, other)")
-                extract_midi = gr.Checkbox(value=False, label="Extract MIDI from stems")
+            generate_btn = gr.Button("⏵  Generate", variant="primary", size="lg",
+                                     elem_classes=["generate-btn"])
 
-            generate_btn = gr.Button("Generate", variant="primary", size="lg")
+            audio_out = gr.Audio(label="", type="filepath", show_label=False,
+                                 elem_classes=["audio-out"])
+            download_files = gr.File(label="Files", file_count="multiple",
+                                     elem_classes=["files-out"])
+            info = gr.Markdown("", elem_classes=["info-line"])
 
-            audio_out = gr.Audio(label="Output", type="filepath")
-            download_files = gr.File(label="Stems + MIDI files", file_count="multiple")
-            info = gr.Markdown("")
-
-            with gr.Accordion("Settings", open=False):
+            with gr.Accordion("Advanced", open=False, elem_classes=["advanced-acc"]):
                 with gr.Row():
-                    duration = gr.Slider(10, 300, value=30, step=5, label="Duration (seconds)")
-                    seed = gr.Number(value=-1, label="Seed (-1 = random)", precision=0)
+                    duration = gr.Slider(10, 300, value=30, step=5, label="Duration (s)")
+                    seed = gr.Number(value=-1, label="Seed", precision=0)
                 with gr.Row():
-                    steps = gr.Slider(4, 50, value=8, step=1, label="Inference steps")
-                    guidance = gr.Slider(1.0, 15.0, value=7.0, step=0.5, label="Guidance scale")
+                    steps = gr.Slider(4, 50, value=8, step=1, label="Steps")
+                    guidance = gr.Slider(1.0, 15.0, value=7.0, step=0.5, label="Guidance")
 
-            gr.Examples(examples=EXAMPLES, inputs=[prompt], label="Try these")
+            gr.Examples(examples=EXAMPLES, inputs=[prompt], label="Examples")
 
         generate_btn.click(
             fn=generate,
-            inputs=[prompt, voice_ref, split_stems, extract_midi, duration, seed, steps, guidance],
+            inputs=[prompt, split_stems, extract_midi, duration, seed, steps, guidance],
             outputs=[audio_out, download_files, info],
         )
 
@@ -361,10 +594,7 @@ def main():
             f"(free the old server with: fuser -k {preferred}/tcp)\n"
         )
 
-    _theme = gr.themes.Base(
-        primary_hue=gr.themes.colors.violet,
-        secondary_hue=gr.themes.colors.purple,
-        neutral_hue=gr.themes.colors.slate,
+    _theme = gr.themes.Monochrome(
         font=gr.themes.GoogleFont("Inter"),
     )
     demo.launch(
