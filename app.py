@@ -323,29 +323,25 @@ input, textarea, select {
     color: #f5f5f5 !important;
 }
 
-/* Toggle row — minimal pills */
+/* Toggle row — clean centered checkboxes */
 .toggles-row {
     justify-content: center !important;
-    gap: 12px !important;
-    margin-bottom: 24px !important;
+    gap: 32px !important;
+    margin: 8px auto 24px auto !important;
 }
-.toggles-row .gr-checkbox label {
-    background: rgba(0,0,0,0.4) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
-    border-radius: 999px !important;
-    padding: 8px 18px !important;
+.toggles-row label {
+    color: rgba(255,255,255,0.75) !important;
     font-size: 0.7rem !important;
-    letter-spacing: 0.2em !important;
+    letter-spacing: 0.18em !important;
     text-transform: uppercase !important;
-    color: rgba(255,255,255,0.6) !important;
-    transition: all 0.2s ease;
     cursor: pointer;
 }
-.toggles-row .gr-checkbox input[type="checkbox"]:checked + label,
-.toggles-row .gr-checkbox label:has(input:checked) {
-    background: #fff !important;
-    color: #000 !important;
-    border-color: #fff !important;
+.toggles-row input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+    accent-color: #fff !important;
+    cursor: pointer;
+    margin-right: 8px;
 }
 
 /* ── Labels — tiny uppercase, fashion-brand feel ─────────────────── */
@@ -531,8 +527,8 @@ def build_ui():
             )
 
             with gr.Row(elem_classes=["toggles-row"]):
-                split_stems = gr.Checkbox(value=False, label="Stems")
-                extract_midi = gr.Checkbox(value=False, label="MIDI")
+                split_stems = gr.Checkbox(value=True, label="Split into stems")
+                extract_midi = gr.Checkbox(value=True, label="Extract MIDI")
 
             generate_btn = gr.Button("⏵  Generate", variant="primary", size="lg",
                                      elem_classes=["generate-btn"])
