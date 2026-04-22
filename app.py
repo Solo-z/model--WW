@@ -319,31 +319,43 @@ body::after {
     letter-spacing: 0.02em;
 }
 
-input, textarea, select {
+/* Generic input styling — exclude checkboxes/radios so they stay clickable */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea, select {
     background: rgba(0,0,0,0.35) !important;
     border-color: rgba(255,255,255,0.12) !important;
     color: #f5f5f5 !important;
 }
 
-/* Toggle row — clean centered checkboxes */
+/* Toggle row — centered, large hit targets, native checkbox visuals */
 .toggles-row {
     justify-content: center !important;
-    gap: 32px !important;
+    gap: 40px !important;
     margin: 8px auto 24px auto !important;
 }
-.toggles-row label {
-    color: rgba(255,255,255,0.75) !important;
-    font-size: 0.7rem !important;
-    letter-spacing: 0.18em !important;
+.toggles-row > * {
+    flex: 0 0 auto !important;
+}
+.toggles-row label,
+.toggles-row .gr-checkbox,
+.toggles-row [data-testid="checkbox"] {
+    color: rgba(255,255,255,0.85) !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.22em !important;
     text-transform: uppercase !important;
-    cursor: pointer;
+    cursor: pointer !important;
+    pointer-events: auto !important;
 }
 .toggles-row input[type="checkbox"] {
-    width: 16px !important;
-    height: 16px !important;
+    width: 18px !important;
+    height: 18px !important;
     accent-color: #fff !important;
-    cursor: pointer;
-    margin-right: 8px;
+    cursor: pointer !important;
+    margin-right: 10px !important;
+    background: #fff !important;
+    border: 1px solid #fff !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
 }
 
 /* ── Labels — tiny uppercase, fashion-brand feel ─────────────────── */
