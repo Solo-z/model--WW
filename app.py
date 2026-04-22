@@ -517,14 +517,26 @@ div[role="progressbar"] {
 }
 
 /* Hidden file source — kept off-screen but still in the DOM so JS can read URLs */
-.files-out-hidden {
-    position: absolute !important;
-    left: -9999px !important;
-    top: -9999px !important;
+#room-hidden-files,
+.files-out-hidden,
+.gradio-container #room-hidden-files,
+.gradio-container .files-out-hidden {
+    position: fixed !important;
+    left: -99999px !important;
+    top: -99999px !important;
     width: 1px !important;
     height: 1px !important;
+    max-width: 1px !important;
+    max-height: 1px !important;
     overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
 }
+#room-hidden-files * { pointer-events: none !important; }
 
 /* Downloads panel — clearly visible when files exist, empty state hidden */
 .files-out {
