@@ -219,8 +219,36 @@ def _generate_impl(prompt, outputs_select,
             info_parts.append(f"MIDI failed: {midi_err}")
         info = "Ready · " + " · ".join(info_parts) if info_parts else "Ready"
 
+        # Bundle everything (mix + stems + MIDI) into a single ZIP for one-click download
+        bundle_zip = None
+        files_for_zip = ([audio_out] if audio_out and os.path.exists(audio_out) else []) + all_files
+        if files_for_zip:
+            import zipfile
+            from datetime import datetime
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            bundle_zip = os.path.join(out_dir, f"room_bundle_{ts}.zip")
+            try:
+                with zipfile.ZipFile(bundle_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for fp in files_for_zip:
+                        if os.path.exists(fp):
+                            arcname = os.path.basename(fp)
+                            # Group by type inside the zip
+                            if fp == audio_out:
+                                zf.write(fp, f"audio/{arcname}")
+                            elif fp.endswith(".mid"):
+                                zf.write(fp, f"midi/{arcname}")
+                            else:
+                                zf.write(fp, f"stems/{arcname}")
+            except Exception as zip_err:
+                print(f"[ROOM] ZIP bundle failed: {zip_err}", flush=True)
+                bundle_zip = None
+
         progress(1.0, desc="Ready")
-        return audio_out, all_files if all_files else None, info
+        download_all_update = (
+            gr.update(value=bundle_zip, visible=True)
+            if bundle_zip else gr.update(visible=False)
+        )
+        return audio_out, all_files if all_files else None, download_all_update, info
     except gr.Error:
         raise
     except Exception as e:
@@ -489,6 +517,30 @@ div[role="progressbar"] {
     filter: grayscale(100%) invert(0%);
 }
 
+/* Big "Download All" button — sits above individual file list */
+.download-all-btn, .download-all-btn button {
+    background: rgba(255,255,255,0.12) !important;
+    border: 1px solid rgba(255,255,255,0.4) !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.25em !important;
+    text-transform: uppercase !important;
+    font-size: 0.85em !important;
+    padding: 18px 24px !important;
+    border-radius: 6px !important;
+    margin-top: 24px !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.download-all-btn:hover, .download-all-btn button:hover {
+    background: rgba(255,255,255,0.22) !important;
+    border-color: #fff !important;
+    transform: translateY(-1px);
+}
+
 /* Downloads panel — clearly visible when files exist, empty state hidden */
 .files-out {
     margin-top: 24px !important;
@@ -666,8 +718,15 @@ def build_ui():
 
             audio_out = gr.Audio(label="", type="filepath", show_label=False,
                                  elem_classes=["audio-out"])
+
+            download_all = gr.DownloadButton(
+                label="⬇  Download All (ZIP)",
+                visible=False,
+                elem_classes=["download-all-btn"],
+            )
+
             download_files = gr.File(
-                label="Downloads",
+                label="Or grab individual files",
                 file_count="multiple",
                 elem_classes=["files-out"],
             )
@@ -686,7 +745,7 @@ def build_ui():
         generate_btn.click(
             fn=generate,
             inputs=[prompt, outputs_select, duration, seed, steps, guidance],
-            outputs=[audio_out, download_files, info],
+            outputs=[audio_out, download_files, download_all, info],
         )
 
         gr.HTML("""
