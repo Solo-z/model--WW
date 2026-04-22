@@ -10,6 +10,7 @@ torchaudio==2.9.1
 pandas==2.2.3
 numpy>=1.26.0
 basic-pitch==0.4.0
+onnxruntime>=1.17,<2.0
 resampy>=0.2.2,<0.4.3
 # Gradio stack
 gradio==6.12.0
