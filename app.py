@@ -207,11 +207,15 @@ def _generate_impl(prompt, outputs_select,
         all_files = stem_files + midi_files
 
         info_parts = []
-        if result.get("stems"):
-            info_parts.append(f"Stems: {', '.join(result['stems'].keys())}")
-        if result.get("midis"):
-            info_parts.append(f"MIDI: {', '.join(result['midis'].keys())}")
-        info = " · ".join(info_parts) if info_parts else "Generated."
+        if stem_files:
+            info_parts.append(f"{len(stem_files)} stems")
+        elif split_stems:
+            info_parts.append("Stems requested but not produced")
+        if midi_files:
+            info_parts.append(f"{len(midi_files)} MIDI")
+        elif extract_midi:
+            info_parts.append("MIDI requested but not produced")
+        info = "Ready · " + " · ".join(info_parts) if info_parts else "Ready"
 
         progress(1.0, desc="Ready")
         return audio_out, all_files if all_files else None, info
@@ -447,7 +451,45 @@ label, .gr-input-label, span[data-testid="block-label"] {
     margin-top: 16px;
     filter: grayscale(100%) invert(0%);
 }
-.files-out, .info-line {
+
+/* Downloads panel — full-width, clearly visible */
+.files-out {
+    margin-top: 24px !important;
+    background: rgba(0,0,0,0.55) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    border-radius: 6px !important;
+    padding: 18px 20px !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+.files-out > label,
+.files-out [data-testid="block-label"] {
+    color: #fff !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.25em !important;
+    text-transform: uppercase !important;
+    margin-bottom: 12px !important;
+    display: block !important;
+    opacity: 1 !important;
+}
+.files-out a, .files-out button {
+    color: #fff !important;
+    background: rgba(255,255,255,0.08) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    border-radius: 4px !important;
+    padding: 10px 14px !important;
+    margin: 4px 6px 4px 0 !important;
+    text-decoration: none !important;
+    font-size: 0.85em !important;
+    display: inline-block !important;
+    transition: background 0.15s ease;
+}
+.files-out a:hover, .files-out button:hover {
+    background: rgba(255,255,255,0.18) !important;
+}
+.files-out svg { color: #fff !important; }
+
+.info-line {
     margin-top: 12px !important;
 }
 .info-line p {
@@ -555,8 +597,12 @@ def build_ui():
 
             audio_out = gr.Audio(label="", type="filepath", show_label=False,
                                  elem_classes=["audio-out"])
-            download_files = gr.File(label="Files", file_count="multiple",
-                                     elem_classes=["files-out"])
+            download_files = gr.File(
+                label="Downloads — Stems & MIDI",
+                file_count="multiple",
+                interactive=False,
+                elem_classes=["files-out"],
+            )
             info = gr.Markdown("", elem_classes=["info-line"])
 
             with gr.Accordion("Advanced", open=False, elem_classes=["advanced-acc"]):
