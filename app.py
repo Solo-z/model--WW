@@ -110,45 +110,47 @@ def _pick_server_port(preferred: int, max_offsets: int = 64) -> int:
 # ── Generate ───────────────────────────────────────────────────────────
 
 def _friendly_error(exc: Exception) -> str:
-    """Translate cryptic stack traces into something a human can act on."""
+    """Translate cryptic stack traces into something a human can act on,
+    without leaking internal model names, file paths, or library internals."""
     msg = str(exc).lower()
     if "duration" in msg and ("maximum" in msg or "larger than" in msg):
-        return ("Generation requested more GPU time than your account is allowed. "
-                "Try a shorter duration, fewer inference steps, or sign in to HuggingFace for a higher quota.")
+        return ("Generation needs more GPU time than your account allows. "
+                "Try a shorter duration or fewer steps, or sign in to HuggingFace for a higher quota.")
     if "out of memory" in msg or "cuda oom" in msg or "outofmemory" in msg:
-        return "Ran out of GPU memory. Try a shorter duration or fewer inference steps."
-    if "model not fully initialized" in msg:
-        return ("The model is still warming up after a restart. Wait 30 seconds and try again. "
-                "If it persists the Space needs a rebuild.")
+        return "Ran out of memory. Try a shorter duration or fewer steps."
+    if "model not fully initialized" in msg or "not fully initialized" in msg:
+        return "ROOM is still warming up. Wait 30 seconds and try again."
     if "no module named" in msg or "modulenotfounderror" in msg:
-        return f"A dependency is missing on the Space. The Space needs a rebuild. ({exc})"
+        return "ROOM is not fully ready on this Space yet. Try again in a minute."
     if "cuda" in msg and ("not available" in msg or "no device" in msg):
-        return "GPU is not available right now. ZeroGPU may be at capacity — try again in a minute."
+        return "GPU is busy right now. Try again in a minute."
     if "timeout" in msg or "timed out" in msg:
         return "Request timed out. Try a shorter duration or simpler prompt."
-    return str(exc).strip() or "Unknown error. Check the Space's Container logs for details."
+    if "engine not ready" in msg:
+        return "ROOM is still starting up. Try again in a moment."
+    return "Generation failed. Try again, or simplify the prompt."
 
 
 def _generate_impl(prompt, split_stems, extract_midi,
                    duration, seed, steps, guidance,
-                   progress=gr.Progress(track_tqdm=True)):
+                   progress=gr.Progress()):
     """Core generation logic — separated so ZeroGPU decorator can wrap it."""
     import traceback
 
     if not AVAILABLE:
-        raise gr.Error("ROOM not installed on this Space. The build is incomplete.")
+        raise gr.Error("ROOM is not ready on this Space yet.")
 
     if not (prompt or "").strip():
         raise gr.Error("Add a prompt first — describe the music you want.")
 
     try:
-        progress(0.02, desc="Warming up engine…")
+        progress(0.05, desc="Composing")
         engine = _get_engine()
 
         out_dir = str(_ROOT / "output" / "room")
         os.makedirs(out_dir, exist_ok=True)
 
-        progress(0.10, desc="Generating audio (ACE-Step)…")
+        progress(0.20, desc="Generating")
         result = engine.generate(
             prompt=prompt,
             voice_ref=None,
@@ -160,7 +162,7 @@ def _generate_impl(prompt, split_stems, extract_midi,
             guidance_scale=float(guidance),
             save_dir=out_dir,
         )
-        progress(0.95, desc="Finalising…")
+        progress(0.92, desc="Mastering")
 
         audio_out = result.get("audio_path")
 
@@ -183,7 +185,7 @@ def _generate_impl(prompt, split_stems, extract_midi,
             info_parts.append(f"MIDI: {', '.join(result['midis'].keys())}")
         info = " · ".join(info_parts) if info_parts else "Generated."
 
-        progress(1.0, desc="Done.")
+        progress(1.0, desc="Ready")
         return audio_out, all_files if all_files else None, info
     except gr.Error:
         raise
