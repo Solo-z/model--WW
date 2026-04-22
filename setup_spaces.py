@@ -58,6 +58,22 @@ def setup():
         snapshot_download("myshell-ai/OpenVoiceV2", local_dir=str(ckpt_dir),
                           tqdm_class=None)
 
+    # ── Stem separator + MIDI transcriber — preload weights ──────────
+    # If we don't pre-download these, the first Generate call hits a
+    # cold model fetch inside the GPU window and may time out silently.
+    try:
+        from demucs.pretrained import get_model
+        get_model("htdemucs")
+    except Exception as _e:
+        print(f"[ROOM] stem model preload skipped: {_e}")
+
+    try:
+        # basic-pitch ships its model with the package, no network needed,
+        # but importing it once warms up the import graph.
+        from basic_pitch.inference import predict  # noqa: F401
+    except Exception as _e:
+        print(f"[ROOM] midi model preload skipped: {_e}")
+
     print("[ROOM] Engine ready.")
 
 
