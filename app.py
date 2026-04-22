@@ -220,11 +220,7 @@ def _generate_impl(prompt, outputs_select,
         info = "Ready · " + " · ".join(info_parts) if info_parts else "Ready"
 
         progress(1.0, desc="Ready")
-        files_update = (
-            gr.update(value=all_files, visible=True)
-            if all_files else gr.update(value=None, visible=False)
-        )
-        return audio_out, files_update, info
+        return audio_out, all_files if all_files else None, info
     except gr.Error:
         raise
     except Exception as e:
@@ -493,7 +489,7 @@ div[role="progressbar"] {
     filter: grayscale(100%) invert(0%);
 }
 
-/* Downloads panel — full-width, clearly visible, all interactive */
+/* Downloads panel — clearly visible when files exist, empty state hidden */
 .files-out {
     margin-top: 24px !important;
     background: rgba(0,0,0,0.55) !important;
@@ -504,9 +500,8 @@ div[role="progressbar"] {
     -webkit-backdrop-filter: blur(20px);
     pointer-events: auto !important;
 }
-.files-out * {
-    pointer-events: auto !important;
-}
+.files-out * { pointer-events: auto !important; }
+
 .files-out > label,
 .files-out [data-testid="block-label"],
 .files-out span[data-testid="block-label"] {
@@ -518,11 +513,32 @@ div[role="progressbar"] {
     display: block !important;
     opacity: 1 !important;
 }
-/* File pills / list rows */
+
+/* Hide Gradio's giant empty-state icon + "Drop file here" prompt */
+.files-out [data-testid="upload"],
+.files-out .upload-container,
+.files-out [class*="upload-text"],
+.files-out [class*="UploadText"],
+.files-out [class*="empty"],
+.files-out [class*="Empty"],
+.files-out svg.feather-file,
+.files-out svg[class*="upload"] {
+    display: none !important;
+}
+/* Collapse any oversized icons */
+.files-out svg {
+    max-width: 18px !important;
+    max-height: 18px !important;
+    color: #fff !important;
+    opacity: 1 !important;
+}
+
+/* File rows / pills */
 .files-out a,
 .files-out button,
-.files-out [class*="file"],
-.files-out [class*="File"] {
+.files-out [data-testid="file-name"],
+.files-out [class*="file-preview"],
+.files-out [class*="filePreview"] {
     color: #fff !important;
     background: rgba(255,255,255,0.08) !important;
     border: 1px solid rgba(255,255,255,0.18) !important;
@@ -538,12 +554,9 @@ div[role="progressbar"] {
     transition: background 0.15s ease;
 }
 .files-out a:hover,
-.files-out button:hover,
-.files-out [class*="file"]:hover {
+.files-out button:hover {
     background: rgba(255,255,255,0.18) !important;
 }
-.files-out svg, .files-out img { color: #fff !important; opacity: 1 !important; }
-.files-out [class*="upload"] { display: none !important; }
 
 .info-line {
     margin-top: 12px !important;
@@ -657,7 +670,6 @@ def build_ui():
                 label="Downloads",
                 file_count="multiple",
                 elem_classes=["files-out"],
-                visible=False,
             )
             info = gr.Markdown("", elem_classes=["info-line"])
 
