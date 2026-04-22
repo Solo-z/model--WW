@@ -131,7 +131,7 @@ def _friendly_error(exc: Exception) -> str:
     return "Generation failed. Try again, or simplify the prompt."
 
 
-def _generate_impl(prompt, split_stems, extract_midi,
+def _generate_impl(prompt, outputs_select,
                    duration, seed, steps, guidance,
                    progress=gr.Progress()):
     """Core generation logic — separated so ZeroGPU decorator can wrap it."""
@@ -142,6 +142,10 @@ def _generate_impl(prompt, split_stems, extract_midi,
 
     if not (prompt or "").strip():
         raise gr.Error("Add a prompt first — describe the music you want.")
+
+    selected = outputs_select or []
+    split_stems = "Stems" in selected
+    extract_midi = "MIDI" in selected
 
     try:
         progress(0.05, desc="Composing")
@@ -327,35 +331,10 @@ textarea, select {
     color: #f5f5f5 !important;
 }
 
-/* Toggle row — centered, large hit targets, native checkbox visuals */
+/* Toggle row — centered, minimal styling so Gradio's clicks still work */
 .toggles-row {
     justify-content: center !important;
-    gap: 40px !important;
     margin: 8px auto 24px auto !important;
-}
-.toggles-row > * {
-    flex: 0 0 auto !important;
-}
-.toggles-row label,
-.toggles-row .gr-checkbox,
-.toggles-row [data-testid="checkbox"] {
-    color: rgba(255,255,255,0.85) !important;
-    font-size: 0.72rem !important;
-    letter-spacing: 0.22em !important;
-    text-transform: uppercase !important;
-    cursor: pointer !important;
-    pointer-events: auto !important;
-}
-.toggles-row input[type="checkbox"] {
-    width: 18px !important;
-    height: 18px !important;
-    accent-color: #fff !important;
-    cursor: pointer !important;
-    margin-right: 10px !important;
-    background: #fff !important;
-    border: 1px solid #fff !important;
-    pointer-events: auto !important;
-    opacity: 1 !important;
 }
 
 /* ── Labels — tiny uppercase, fashion-brand feel ─────────────────── */
@@ -540,9 +519,12 @@ def build_ui():
                 show_label=False,
             )
 
-            with gr.Row(elem_classes=["toggles-row"]):
-                split_stems = gr.Checkbox(value=True, label="Split into stems")
-                extract_midi = gr.Checkbox(value=True, label="Extract MIDI")
+            outputs_select = gr.CheckboxGroup(
+                choices=["Stems", "MIDI"],
+                value=["Stems", "MIDI"],
+                label="Outputs",
+                elem_classes=["toggles-row"],
+            )
 
             generate_btn = gr.Button("⏵  Generate", variant="primary", size="lg",
                                      elem_classes=["generate-btn"])
@@ -565,7 +547,7 @@ def build_ui():
 
         generate_btn.click(
             fn=generate,
-            inputs=[prompt, split_stems, extract_midi, duration, seed, steps, guidance],
+            inputs=[prompt, outputs_select, duration, seed, steps, guidance],
             outputs=[audio_out, download_files, info],
         )
 
