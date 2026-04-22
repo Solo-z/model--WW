@@ -245,8 +245,25 @@ class RoomEngine:
             return
         from basic_pitch.inference import predict as bp_predict
 
-        print("[ROOM] BasicPitch loaded.")
+        # basic-pitch ships several model formats (.tflite, .onnx, .pb, .mlmodel).
+        # On Spaces the .tflite loader is broken — pick the ONNX path explicitly
+        # and pair it with onnxruntime which is in requirements.
+        model_path = None
+        try:
+            import basic_pitch
+            from pathlib import Path as _P
+            saved = _P(basic_pitch.__file__).parent / "saved_models" / "icassp_2022"
+            for candidate in ("nmp.onnx", "nmp"):
+                p = saved / candidate
+                if p.exists():
+                    model_path = str(p)
+                    break
+        except Exception:
+            pass
+
+        self._basicpitch_model_path = model_path
         self._basicpitch = bp_predict
+        print(f"[ROOM] BasicPitch loaded (model={model_path or 'default'}).")
 
     # ── Core pipeline ──────────────────────────────────────────────────
 
@@ -453,10 +470,20 @@ class RoomEngine:
             self._load_demucs()
             import torch
             import torchaudio
+            import numpy as np
 
             os.makedirs(output_dir, exist_ok=True)
 
-            wav, sr = torchaudio.load(audio_path)
+            # torchaudio 2.9+ requires torchcodec for some backends; fall back to
+            # soundfile (always installed) which reads WAV/FLAC reliably.
+            try:
+                wav, sr = torchaudio.load(audio_path)
+            except Exception:
+                import soundfile as sf
+                wav_np, sr = sf.read(audio_path, always_2d=True, dtype="float32")
+                # soundfile returns (samples, channels) — transpose to (channels, samples)
+                wav = torch.from_numpy(wav_np.T).float()
+
             wav = wav.to(self.config.device)
 
             if wav.dim() == 1:
@@ -483,8 +510,10 @@ class RoomEngine:
             stems = {}
             for i, name in enumerate(stem_names):
                 stem_path = os.path.join(output_dir, f"{name}.wav")
-                stem_audio = sources[0, i].cpu()
-                torchaudio.save(stem_path, stem_audio, sr)
+                stem_audio = sources[0, i].cpu().numpy()
+                # soundfile expects (samples, channels) — transpose
+                import soundfile as sf
+                sf.write(stem_path, stem_audio.T, int(sr), subtype="PCM_16")
                 stems[name] = stem_path
 
             self._last_stems_error = None
@@ -507,7 +536,10 @@ class RoomEngine:
                 if name == "drums":
                     continue
                 midi_path = os.path.join(output_dir, f"{name}.mid")
-                model_output, midi_data, note_events = self._basicpitch(audio_path)
+                bp_kwargs = {}
+                if getattr(self, "_basicpitch_model_path", None):
+                    bp_kwargs["model_or_model_path"] = self._basicpitch_model_path
+                model_output, midi_data, note_events = self._basicpitch(audio_path, **bp_kwargs)
                 midi_data.write(midi_path)
                 midis[name] = midi_path
 
