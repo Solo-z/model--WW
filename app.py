@@ -452,7 +452,7 @@ label, .gr-input-label, span[data-testid="block-label"] {
     filter: grayscale(100%) invert(0%);
 }
 
-/* Downloads panel — full-width, clearly visible */
+/* Downloads panel — full-width, clearly visible, all interactive */
 .files-out {
     margin-top: 24px !important;
     background: rgba(0,0,0,0.55) !important;
@@ -461,9 +461,14 @@ label, .gr-input-label, span[data-testid="block-label"] {
     padding: 18px 20px !important;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    pointer-events: auto !important;
+}
+.files-out * {
+    pointer-events: auto !important;
 }
 .files-out > label,
-.files-out [data-testid="block-label"] {
+.files-out [data-testid="block-label"],
+.files-out span[data-testid="block-label"] {
     color: #fff !important;
     font-size: 0.7rem !important;
     letter-spacing: 0.25em !important;
@@ -472,7 +477,11 @@ label, .gr-input-label, span[data-testid="block-label"] {
     display: block !important;
     opacity: 1 !important;
 }
-.files-out a, .files-out button {
+/* File pills / list rows */
+.files-out a,
+.files-out button,
+.files-out [class*="file"],
+.files-out [class*="File"] {
     color: #fff !important;
     background: rgba(255,255,255,0.08) !important;
     border: 1px solid rgba(255,255,255,0.18) !important;
@@ -481,13 +490,19 @@ label, .gr-input-label, span[data-testid="block-label"] {
     margin: 4px 6px 4px 0 !important;
     text-decoration: none !important;
     font-size: 0.85em !important;
-    display: inline-block !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
     transition: background 0.15s ease;
 }
-.files-out a:hover, .files-out button:hover {
+.files-out a:hover,
+.files-out button:hover,
+.files-out [class*="file"]:hover {
     background: rgba(255,255,255,0.18) !important;
 }
-.files-out svg { color: #fff !important; }
+.files-out svg, .files-out img { color: #fff !important; opacity: 1 !important; }
+.files-out [class*="upload"] { display: none !important; }
 
 .info-line {
     margin-top: 12px !important;
@@ -598,9 +613,8 @@ def build_ui():
             audio_out = gr.Audio(label="", type="filepath", show_label=False,
                                  elem_classes=["audio-out"])
             download_files = gr.File(
-                label="Downloads — Stems & MIDI",
+                label="Downloads",
                 file_count="multiple",
-                interactive=False,
                 elem_classes=["files-out"],
             )
             info = gr.Markdown("", elem_classes=["info-line"])
