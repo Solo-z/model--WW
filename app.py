@@ -218,7 +218,11 @@ def _generate_impl(prompt, outputs_select,
         info = "Ready · " + " · ".join(info_parts) if info_parts else "Ready"
 
         progress(1.0, desc="Ready")
-        return audio_out, all_files if all_files else None, info
+        files_update = (
+            gr.update(value=all_files, visible=True)
+            if all_files else gr.update(value=None, visible=False)
+        )
+        return audio_out, files_update, info
     except gr.Error:
         raise
     except Exception as e:
@@ -616,6 +620,7 @@ def build_ui():
                 label="Downloads",
                 file_count="multiple",
                 elem_classes=["files-out"],
+                visible=False,
             )
             info = gr.Markdown("", elem_classes=["info-line"])
 
