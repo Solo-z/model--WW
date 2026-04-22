@@ -15,51 +15,50 @@ MODELS = ROOT / "models"
 
 
 def run(cmd, **kw):
-    print(f"  $ {' '.join(cmd)}")
-    subprocess.run(cmd, check=True, **kw)
+    # Suppress git/subprocess output — keeps internal repo URLs out of logs
+    subprocess.run(cmd, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kw)
 
 
 def pip(*args):
-    subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", *args], check=False)
+    subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", *args],
+                   check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def setup():
     MODELS.mkdir(exist_ok=True)
 
-    # ── ACE-Step ──────────────────────────────────────────────────────
+    print("[ROOM] Preparing engine…")
+
+    # ── Audio model ───────────────────────────────────────────────────
     acestep_dir = MODELS / "ace-step"
     if not (acestep_dir / "pyproject.toml").exists():
-        print("[setup] Cloning ACE-Step 1.5...")
         run(["git", "clone", "https://github.com/ACE-Step/ACE-Step-1.5.git", str(acestep_dir)])
         pyproject = acestep_dir / "pyproject.toml"
         text = pyproject.read_text()
         if ">=3.11,<3.13" in text:
             pyproject.write_text(text.replace(">=3.11,<3.13", ">=3.10,<3.14"))
-    else:
-        print("[setup] ACE-Step already present.")
 
     pip("-e", str(acestep_dir), "--no-deps")
 
-    # Patch sys.path so acestep is importable
     if str(acestep_dir) not in sys.path:
         sys.path.insert(0, str(acestep_dir))
 
-    # ── OpenVoice ─────────────────────────────────────────────────────
+    # ── Voice model ───────────────────────────────────────────────────
     openvoice_dir = MODELS / "openvoice"
     if not openvoice_dir.exists():
-        print("[setup] Cloning OpenVoice...")
         run(["git", "clone", "https://github.com/myshell-ai/OpenVoice.git", str(openvoice_dir)])
     pip("-e", str(openvoice_dir), "--no-deps")
 
     ckpt_dir = openvoice_dir / "checkpoints_v2"
     if not (ckpt_dir / "converter" / "checkpoint.pth").exists():
-        print("[setup] Downloading OpenVoice V2 checkpoints...")
+        # Suppress hub progress bars in case env var wasn't read in time
+        os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
         from huggingface_hub import snapshot_download
-        snapshot_download("myshell-ai/OpenVoiceV2", local_dir=str(ckpt_dir))
-    else:
-        print("[setup] OpenVoice checkpoints present.")
+        snapshot_download("myshell-ai/OpenVoiceV2", local_dir=str(ckpt_dir),
+                          tqdm_class=None)
 
-    print("[setup] Done.")
+    print("[ROOM] Engine ready.")
 
 
 if __name__ == "__main__":

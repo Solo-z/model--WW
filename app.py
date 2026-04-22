@@ -13,10 +13,34 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import socket
 import sys
 from pathlib import Path
+
+# ── Silence internal library logs BEFORE any heavy imports ────────────
+# Hides model names, file paths, and progress bars from the runtime log
+# stream (which other people might glimpse on a public Space).
+os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+os.environ.setdefault("DIFFUSERS_VERBOSITY", "error")
+os.environ.setdefault("ACESTEP_DISABLE_TQDM", "1")
+os.environ.setdefault("TQDM_DISABLE", "1")
+
+# Stdlib logging — cap noisy third-party loggers
+for _name in ("transformers", "diffusers", "accelerate", "demucs",
+              "openvoice", "basic_pitch", "matplotlib", "PIL",
+              "urllib3", "huggingface_hub", "filelock"):
+    logging.getLogger(_name).setLevel(logging.ERROR)
+
+# Loguru (used by ACE-Step) — disable entirely for these namespaces
+try:
+    from loguru import logger as _loguru_logger
+    for _ns in ("acestep", "openvoice", "demucs"):
+        _loguru_logger.disable(_ns)
+except ImportError:
+    pass
 
 import gradio as gr
 
