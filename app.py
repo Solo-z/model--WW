@@ -419,34 +419,69 @@ label, .gr-input-label, span[data-testid="block-label"] {
     50%      { box-shadow: 0 0 28px 6px rgba(255,255,255,0.18); }
 }
 
-/* ── Generation visuals — animated bars while loading ────────────── */
-.progress, .progress-text, [class*="Progress"], [class*="progress"] {
+/* ── Generation visuals — chunky animated bar + clear status text ─ */
+.progress,
+.progress-text,
+[class*="Progress"],
+[class*="progress"],
+.gr-progress {
     color: #fff !important;
     background: transparent !important;
 }
-.progress-bar, [class*="progressBar"] {
+
+/* The progress bar fill — bold, full-width, glowing */
+.progress-bar,
+[class*="progressBar"],
+.gr-progress > div,
+div[role="progressbar"] {
     background: linear-gradient(90deg,
-        rgba(255,255,255,0.2),
-        rgba(255,255,255,0.95),
-        rgba(255,255,255,0.2)) !important;
+        rgba(255,255,255,0.15),
+        rgba(255,255,255,1),
+        rgba(255,255,255,0.15)) !important;
     background-size: 200% 100% !important;
-    animation: room-shimmer 1.4s linear infinite !important;
-    height: 2px !important;
-    border-radius: 2px !important;
+    animation: room-shimmer 1.2s linear infinite !important;
+    height: 8px !important;
+    min-height: 8px !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 24px rgba(255,255,255,0.4) !important;
+    margin: 12px 0 !important;
+    width: 100% !important;
+    display: block !important;
 }
+
+/* Bar background (the track) */
+.gr-progress, [class*="progress-bar-container"] {
+    background: rgba(255,255,255,0.08) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    border-radius: 6px !important;
+    padding: 4px !important;
+    margin: 16px 0 !important;
+    width: 100% !important;
+}
+
 @keyframes room-shimmer {
     0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
 
-/* Loading text */
-.gr-progress-text {
-    text-align: center;
-    font-size: 0.7rem !important;
-    letter-spacing: 0.3em !important;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.7) !important;
-    padding: 16px 0 !important;
+/* Loading status text — big, centered, letter-spaced */
+.gr-progress-text,
+.progress-text,
+[class*="progressText"] {
+    text-align: center !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.4em !important;
+    text-transform: uppercase !important;
+    color: #fff !important;
+    padding: 20px 0 12px 0 !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    animation: room-text-fade 1.6s ease-in-out infinite;
+}
+
+@keyframes room-text-fade {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.55; }
 }
 
 /* ── Output panels ───────────────────────────────────────────────── */
