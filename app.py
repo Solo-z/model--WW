@@ -711,12 +711,12 @@ def build_ui():
                 elem_id="download-all-btn",
             )
 
-            # Hidden — provides the served URLs that the JS click handler reads
+            # Hidden via CSS only — needs to be rendered in the DOM so its
+            # file <a> tags exist for the Download All JS to click.
             download_files = gr.File(
                 file_count="multiple",
                 elem_classes=["files-out-hidden"],
                 elem_id="room-hidden-files",
-                visible=False,
                 show_label=False,
             )
             info = gr.Markdown("", elem_classes=["info-line"])
@@ -747,14 +747,49 @@ def build_ui():
             outputs=[],
             js="""
             () => {
+                console.log('[ROOM] Download All clicked');
                 const container = document.getElementById('room-hidden-files');
-                if (!container) return;
-                let links = container.querySelectorAll('a[download], a[href*="/file="], a[href*="gradio_api/file="]');
-                if (links.length === 0) {
-                    links = container.querySelectorAll('a');
+                if (!container) {
+                    console.warn('[ROOM] hidden file container not found');
+                    return;
                 }
-                links.forEach((a, i) => setTimeout(() => {
-                    try { a.click(); } catch (e) { console.warn(e); }
+                // Try multiple selectors — Gradio renders downloads variously
+                // across versions. Anchors with download attr or /file= href
+                // are the classic; otherwise look for any anchor with href.
+                let targets = Array.from(container.querySelectorAll(
+                    'a[download], a[href*="/file="], a[href*="gradio_api/file="]'
+                ));
+                if (targets.length === 0) {
+                    targets = Array.from(container.querySelectorAll('a[href]'));
+                }
+                if (targets.length === 0) {
+                    // Fallback: Gradio v6 sometimes renders the download as a
+                    // <button> with an href on a child anchor or as a click
+                    // handler. Find any descendant anchor.
+                    targets = Array.from(container.getElementsByTagName('a'));
+                }
+                console.log('[ROOM] Found ' + targets.length + ' download targets');
+                if (targets.length === 0) return;
+
+                targets.forEach((el, i) => setTimeout(() => {
+                    try {
+                        const href = el.getAttribute('href');
+                        if (href) {
+                            // Force a fresh anchor with download attr so the
+                            // browser saves rather than navigates.
+                            const a = document.createElement('a');
+                            a.href = href;
+                            a.download = (el.getAttribute('download') ||
+                                          href.split('/').pop().split('?')[0] ||
+                                          'room_file');
+                            a.style.display = 'none';
+                            document.body.appendChild(a);
+                            a.click();
+                            setTimeout(() => document.body.removeChild(a), 100);
+                        } else {
+                            el.click();
+                        }
+                    } catch (e) { console.warn('[ROOM] download err', e); }
                 }, i * 300));
             }
             """,
