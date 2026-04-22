@@ -210,11 +210,13 @@ def _generate_impl(prompt, outputs_select,
         if stem_files:
             info_parts.append(f"{len(stem_files)} stems")
         elif split_stems:
-            info_parts.append("Stems requested but not produced")
+            stems_err = result.get("stems_error") or "unknown error"
+            info_parts.append(f"Stems failed: {stems_err}")
         if midi_files:
             info_parts.append(f"{len(midi_files)} MIDI")
         elif extract_midi:
-            info_parts.append("MIDI requested but not produced")
+            midi_err = result.get("midi_error") or "stems failed first" if split_stems and not stem_files else (result.get("midi_error") or "unknown error")
+            info_parts.append(f"MIDI failed: {midi_err}")
         info = "Ready · " + " · ".join(info_parts) if info_parts else "Ready"
 
         progress(1.0, desc="Ready")

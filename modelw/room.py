@@ -126,6 +126,8 @@ class RoomEngine:
         self._demucs_model = None
         self._basicpitch = None
         self._initialized = False
+        self._last_stems_error: Optional[str] = None
+        self._last_midi_error: Optional[str] = None
 
     # ── Lazy model loading ─────────────────────────────────────────────
 
@@ -292,12 +294,18 @@ class RoomEngine:
         out_dir.mkdir(parents=True, exist_ok=True)
         ts = int(time.time())
 
+        # Reset per-call error state so the result reflects this run only.
+        self._last_stems_error = None
+        self._last_midi_error = None
+
         result = {
             "audio_path": None,
             "voice_cloned_path": None,
             "voice_clone_error": None,
             "stems": {},
             "midis": {},
+            "stems_error": None,
+            "midi_error": None,
             "metadata": {
                 "prompt": prompt,
                 "caption_for_acestep": caption,
@@ -380,6 +388,10 @@ class RoomEngine:
         else:
             print("[ROOM] Step 4/4: Skipped (MIDI not requested)")
 
+        # Surface any silent failures so the UI can display them
+        result["stems_error"] = self._last_stems_error
+        result["midi_error"] = self._last_midi_error
+
         print(f"\n[ROOM] Done. Output: {out_dir}")
         return result
 
@@ -452,13 +464,20 @@ class RoomEngine:
             if wav.shape[0] == 1:
                 wav = wav.repeat(2, 1)
 
-            ref = wav.mean()
-            wav = (wav - ref.mean()) / ref.std()
-            wav = wav.unsqueeze(0)
+            # Normalise per channel — earlier code used `wav.mean()` (scalar)
+            # then called `.std()` on that scalar producing NaN, which silently
+            # destroyed the audio before Demucs even ran.
+            ref_mean = wav.mean()
+            ref_std = wav.std().clamp_min(1e-8)
+            wav_n = (wav - ref_mean) / ref_std
+            wav_n = wav_n.unsqueeze(0)
 
             sources = self._demucs_apply(
-                self._demucs_model, wav, device=self.config.device
+                self._demucs_model, wav_n, device=self.config.device
             )
+
+            # Undo normalisation so the stems sound correct
+            sources = sources * ref_std + ref_mean
 
             stem_names = self._demucs_model.sources
             stems = {}
@@ -468,9 +487,14 @@ class RoomEngine:
                 torchaudio.save(stem_path, stem_audio, sr)
                 stems[name] = stem_path
 
+            self._last_stems_error = None
             return stems
         except Exception as e:
-            print(f"[ROOM] Stem separation failed: {e}")
+            import traceback
+            err = f"{type(e).__name__}: {e}"
+            self._last_stems_error = err
+            print(f"[ROOM] Stem separation failed: {err}", flush=True)
+            print(traceback.format_exc(), flush=True)
             return {}
 
     def _extract_midi(self, stems: dict[str, str], output_dir: str) -> dict[str, str]:
@@ -487,9 +511,14 @@ class RoomEngine:
                 midi_data.write(midi_path)
                 midis[name] = midi_path
 
+            self._last_midi_error = None
             return midis
         except Exception as e:
-            print(f"[ROOM] MIDI extraction failed: {e}")
+            import traceback
+            err = f"{type(e).__name__}: {e}"
+            self._last_midi_error = err
+            print(f"[ROOM] MIDI extraction failed: {err}", flush=True)
+            print(traceback.format_exc(), flush=True)
             return {}
 
     # ── Standalone utilities ───────────────────────────────────────────
