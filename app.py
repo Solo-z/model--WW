@@ -202,14 +202,68 @@ else:
 # ── UI ─────────────────────────────────────────────────────────────────
 
 CSS = """
-.main-header { text-align: center; padding: 24px 0 8px 0; }
-.main-header h1 {
-    font-size: 2.6em; font-weight: 800;
-    background: linear-gradient(135deg, #7c3aed, #a855f7, #c084fc);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+/* Black canvas, cinematic */
+gradio-app, .gradio-container, body {
+    background: #000 !important;
+    color: #e5e5e5 !important;
+    font-family: 'Inter', -apple-system, sans-serif;
 }
-.main-header p { color: #94a3b8; font-size: 1.05em; margin-top: 2px; }
-.prompt-box textarea { font-size: 1.1em !important; }
+.gradio-container { max-width: 920px !important; margin: 0 auto !important; }
+
+/* Hero */
+.room-hero {
+    width: 100%;
+    margin: 0 auto 32px auto;
+    text-align: center;
+    background: #000;
+}
+.room-hero img {
+    width: 100%;
+    max-width: 920px;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Inputs */
+.prompt-box textarea {
+    font-size: 1.05em !important;
+    background: #0a0a0a !important;
+    border: 1px solid #1f1f1f !important;
+    color: #f5f5f5 !important;
+}
+input, textarea, select, .gr-box, .gr-input, .gr-panel {
+    background: #0a0a0a !important;
+    border-color: #1f1f1f !important;
+    color: #e5e5e5 !important;
+}
+
+/* Generate button */
+.gr-button-primary, button.primary {
+    background: #fff !important;
+    color: #000 !important;
+    border: none !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    text-transform: uppercase !important;
+    font-size: 0.9em !important;
+    padding: 14px 28px !important;
+}
+.gr-button-primary:hover, button.primary:hover {
+    background: #d4d4d4 !important;
+}
+
+/* Labels */
+label, .gr-input-label, span[data-testid="block-label"] {
+    color: #a3a3a3 !important;
+    font-size: 0.85em !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+}
+
+/* Accordion + sections */
+.gr-accordion { background: #0a0a0a !important; border: 1px solid #1f1f1f !important; }
+hr { border-color: #1f1f1f !important; }
+
 footer { display: none !important; }
 """
 
@@ -225,12 +279,11 @@ EXAMPLES = [
 
 def build_ui():
     # Gradio 6+: theme/css belong on launch(), not Blocks()
-    with gr.Blocks(title="ROOM") as demo:
+    with gr.Blocks(title="ROOM — A Foundation Model for Music Production") as demo:
 
         gr.HTML("""
-        <div class="main-header">
-            <h1>ROOM</h1>
-            <p>Describe the music. Upload your voice. We handle the rest.</p>
+        <div class="room-hero">
+            <img src="/gradio_api/file=assets/room_tree.png" alt="ROOM" />
         </div>
         """)
 
@@ -273,11 +326,12 @@ def build_ui():
             outputs=[audio_out, download_files, info],
         )
 
-        gr.Markdown("""
-        ---
-        <center style="color: #64748b; font-size: 0.85em;">
-        ROOM v0.1 — A foundation model for music production
-        </center>
+        gr.HTML("""
+        <div style="text-align:center; margin-top:48px; padding:24px 0;
+                    color:#525252; font-size:0.75em; letter-spacing:0.2em;
+                    text-transform:uppercase; border-top:1px solid #1f1f1f;">
+            ROOM v0.1 &nbsp;·&nbsp; A FOUNDATION MODEL FOR MUSIC PRODUCTION
+        </div>
         """)
 
     return demo
@@ -320,8 +374,15 @@ def main():
         theme=_theme,
         css=CSS,
         ssr_mode=False,
+        allowed_paths=[str(_ROOT / "assets")],
     )
 
+
+# Allow Gradio to serve the hero image (works in both local & HF Space launches).
+try:
+    gr.set_static_paths(paths=[str(_ROOT / "assets")])
+except Exception:
+    pass
 
 # Hugging Face mounts `demo` at import time; module-level avoids "demo not found in __main__".
 demo = build_ui()
