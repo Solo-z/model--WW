@@ -231,30 +231,13 @@ def _generate_impl(prompt, outputs_select,
         )
         download_all_update = gr.update(visible=has_files)
 
-        # Visible file list — each file as a clickable download pill.
-        # Also serves as the source for the "Download All" JS click handler.
+        # Hidden anchors — invisible source for the Download All JS click handler.
         if downloadable:
-            pills = []
-            for fp in downloadable:
-                fname = os.path.basename(fp)
-                # Friendly label: "Audio · room_TIMESTAMP.wav" / "Stem · bass.wav" / "MIDI · vocals.mid"
-                kind = "Audio"
-                if fp.endswith(".mid"):
-                    kind = "MIDI"
-                elif "stems" in fp.replace("\\", "/").lower():
-                    kind = "Stem"
-                pills.append(
-                    f'<a class="room-file-pill" href="/file={fp}" download="{fname}">'
-                    f'<span class="kind">{kind}</span>'
-                    f'<span class="name">{fname}</span>'
-                    f'<span class="dl">↓</span>'
-                    f'</a>'
-                )
-            files_html = (
-                f'<div id="room-file-anchors" class="room-file-grid">'
-                f'{"".join(pills)}'
-                f'</div>'
+            anchors = "".join(
+                f'<a href="/file={fp}" download="{os.path.basename(fp)}"></a>'
+                for fp in downloadable
             )
+            files_html = f'<div id="room-file-anchors">{anchors}</div>'
         else:
             files_html = ""
 
@@ -535,70 +518,25 @@ div[role="progressbar"],
     transform: translateY(-1px);
 }
 
-/* File list — visible grid of download pills, no scroll */
-.room-file-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 16px;
-    max-height: none !important;
-    overflow: visible !important;
-}
-.room-file-grid:empty { display: none; }
-
-.room-file-pill {
-    display: flex !important;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    background: rgba(0,0,0,0.55) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
-    border-radius: 6px !important;
-    padding: 12px 18px !important;
-    color: #fff !important;
-    text-decoration: none !important;
-    font-size: 0.85rem !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-    cursor: pointer;
-}
-.room-file-pill:hover {
-    background: rgba(255,255,255,0.08) !important;
-    border-color: rgba(255,255,255,0.4) !important;
-    transform: translateX(2px);
-}
-.room-file-pill .kind {
-    font-size: 0.65rem !important;
-    letter-spacing: 0.25em !important;
-    text-transform: uppercase !important;
-    color: rgba(255,255,255,0.55) !important;
-    min-width: 56px;
-}
-.room-file-pill .name {
-    flex: 1;
-    text-align: left;
-    color: #fff !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.room-file-pill .dl {
-    color: rgba(255,255,255,0.7) !important;
-    font-size: 1.1rem;
-    margin-left: 4px;
-}
-
-/* Container of the gr.HTML — strip Gradio chrome so it sits flat */
-#room-hidden-files {
-    background: transparent !important;
-    border: none !important;
+/* Hidden anchor source — DOM-present so JS can click them, but invisible */
+#room-hidden-files,
+.files-out-hidden {
+    position: fixed !important;
+    left: -99999px !important;
+    top: -99999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    max-width: 1px !important;
+    max-height: 1px !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    margin: 0 !important;
     padding: 0 !important;
-    overflow: visible !important;
-    max-height: none !important;
+    border: none !important;
+    background: transparent !important;
 }
-#room-hidden-files:empty { display: none; }
-.files-out-hidden { background: transparent !important; border: none !important; }
+#room-hidden-files * { pointer-events: none !important; }
 
 /* Downloads panel — clearly visible when files exist, empty state hidden */
 .files-out {
@@ -776,7 +714,7 @@ def build_ui():
                                      elem_classes=["generate-btn"])
 
             audio_out = gr.Audio(label="", type="filepath", show_label=False,
-                                 elem_classes=["audio-out"], visible=False)
+                                 elem_classes=["audio-out"])
 
             download_all = gr.Button(
                 "⬇  Download All",
