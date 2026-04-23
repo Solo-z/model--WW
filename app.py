@@ -220,24 +220,25 @@ def _generate_impl(prompt, outputs_select,
         info = "Ready · " + " · ".join(info_parts) if info_parts else "Ready"
 
         progress(1.0, desc="Ready")
+        # Show audio + "Download All" only when there's something to show
         has_audio = bool(audio_out and os.path.exists(audio_out))
         downloadable = ([audio_out] if has_audio else []) + list(all_files)
         has_files = bool(downloadable)
 
-        # Keep audio component always visible — when no value, CSS hides
-        # the inner empty audio element so no thin line shows in idle state.
-        audio_update = audio_out if has_audio else None
+        audio_update = (
+            gr.update(value=audio_out, visible=True) if has_audio
+            else gr.update(value=None, visible=False)
+        )
         download_all_update = gr.update(visible=has_files)
 
-        # Hidden anchors — invisible source for the Download All JS click handler.
-        # HF Spaces serves files under /gradio_api/file=; locally it's /file=.
-        url_prefix = "/gradio_api/file=" if os.environ.get("SPACE_ID") else "/file="
+        # Hidden anchors — invisible to the eye, only used by the
+        # Download All button's JS click handler.
         if downloadable:
             anchors = "".join(
-                f'<a href="{url_prefix}{fp}" download="{os.path.basename(fp)}"></a>'
+                f'<a href="/file={fp}" download="{os.path.basename(fp)}"></a>'
                 for fp in downloadable
             )
-            files_html = f'<div id="room-file-anchors">{anchors}</div>'
+            files_html = f'<div id="room-file-anchors" style="display:none">{anchors}</div>'
         else:
             files_html = ""
 
@@ -438,73 +439,53 @@ label, .gr-input-label, span[data-testid="block-label"] {
     50%      { box-shadow: 0 0 28px 6px rgba(255,255,255,0.18); }
 }
 
-/* Hide audio player visuals when there's no audio loaded yet */
-.audio-out:not(:has(audio[src]:not([src=""]))) {
-    height: 0 !important;
-    overflow: hidden !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
+/* ── Loading state — text-only, no bar ─────────────────────────── */
+/* Hide the progress bar visual entirely */
+.progress-bar,
+[class*="progressBar"],
+.gr-progress > div,
+div[role="progressbar"],
+.gr-progress,
+[class*="progress-bar-container"] {
     background: transparent !important;
-}
-.audio-out:not(:has(audio[src]:not([src=""]))) > * {
+    border: none !important;
+    box-shadow: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
     display: none !important;
 }
 
-/* ── Loading state — completely hide Gradio's progress widget ────── */
-.progress, .gr-progress,
-[class*="progress-wrap"], [class*="ProgressWrap"],
-[class*="progressBar"], .progress-bar,
-.gr-progress > div, div[role="progressbar"],
-[class*="progress"] [class*="bar"],
-[class*="progress"] [class*="track"],
-[class*="progress"] [class*="fill"],
-.progress-text, .gr-progress-text, [class*="progressText"],
-.progress span, .progress p, .progress div {
-    display: none !important;
-    height: 0 !important;
-    width: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    visibility: hidden !important;
+/* Just the status text — big, centered, pulsing */
+.gr-progress-text,
+.progress-text,
+[class*="progressText"],
+.progress span {
+    text-align: center !important;
+    font-size: 1.1rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.5em !important;
+    text-transform: uppercase !important;
+    color: #fff !important;
+    padding: 32px 0 !important;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+    animation: room-text-fade 1.4s ease-in-out infinite;
+    display: block !important;
 }
 
-/* While the Generate button is disabled (= a generation is running),
-   show a small rotating spinner on its left side. Pure CSS, no JS. */
-.generate-btn:disabled, .generate-btn[disabled],
-button.generate-btn:disabled, button.generate-btn[disabled],
-.gr-button-primary:disabled, .gr-button-primary[disabled] {
-    background: #fff !important;
-    color: #000 !important;
-    opacity: 1 !important;
-    cursor: progress !important;
-    position: relative;
-    padding-left: 64px !important;
-    text-align: center;
+@keyframes room-text-fade {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.45; }
 }
-.generate-btn:disabled::before,
-.generate-btn[disabled]::before,
-button.generate-btn:disabled::before,
-button.generate-btn[disabled]::before,
-.gr-button-primary:disabled::before,
-.gr-button-primary[disabled]::before {
-    content: "";
-    position: absolute;
-    left: 28px;
-    top: 50%;
-    width: 18px;
-    height: 18px;
-    margin-top: -9px;
-    border: 2px solid rgba(0,0,0,0.18);
-    border-top-color: #000;
-    border-radius: 50%;
-    animation: room-spin 0.7s linear infinite;
-}
-@keyframes room-spin {
-    to { transform: rotate(360deg); }
+
+/* Hide audio player when no audio loaded — kills the empty thin line */
+.audio-out:has(audio:not([src])) { display: none !important; }
+.audio-out [data-testid="audio-no-content"],
+.audio-out [class*="empty"] { display: none !important; }
+.audio-out audio[src=""],
+.audio-out audio:not([src]) {
+    display: none !important;
 }
 
 /* ── Output panels ───────────────────────────────────────────────── */
@@ -538,25 +519,21 @@ button.generate-btn[disabled]::before,
     transform: translateY(-1px);
 }
 
-/* Hidden anchor source — DOM-present so JS can click them, but invisible */
+/* gr.HTML container — strip all Gradio chrome so it never shows visually */
 #room-hidden-files,
-.files-out-hidden {
-    position: fixed !important;
-    left: -99999px !important;
-    top: -99999px !important;
-    width: 1px !important;
-    height: 1px !important;
-    max-width: 1px !important;
-    max-height: 1px !important;
-    overflow: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
+.files-out-hidden,
+.gradio-container #room-hidden-files,
+.gradio-container .files-out-hidden {
     background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
 }
-#room-hidden-files * { pointer-events: none !important; }
+#room-hidden-files:empty,
+.files-out-hidden:empty { display: none !important; }
 
 /* Downloads panel — clearly visible when files exist, empty state hidden */
 .files-out {
@@ -734,7 +711,7 @@ def build_ui():
                                      elem_classes=["generate-btn"])
 
             audio_out = gr.Audio(label="", type="filepath", show_label=False,
-                                 elem_classes=["audio-out"])
+                                 elem_classes=["audio-out"], visible=False)
 
             download_all = gr.Button(
                 "⬇  Download All",
