@@ -438,53 +438,59 @@ label, .gr-input-label, span[data-testid="block-label"] {
     50%      { box-shadow: 0 0 28px 6px rgba(255,255,255,0.18); }
 }
 
-/* ── Loading state — text-only, no bar ─────────────────────────── */
-/* Hide the progress bar visual entirely */
+/* ── Loading state — small clean box with just the % text ──────── */
+/* Nuke any filled bar / track visual inside the progress widget */
 .progress-bar,
 [class*="progressBar"],
-.gr-progress > div,
+.gr-progress > div:not([class*="text"]):not([class*="Text"]),
 div[role="progressbar"],
-.gr-progress,
-[class*="progress-bar-container"] {
+[class*="progress"] [class*="bar"]:not([class*="Bar"]),
+[class*="progress"] [class*="track"],
+[class*="progress"] [class*="fill"] {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     height: 0 !important;
     min-height: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    width: 0 !important;
     display: none !important;
 }
 
-/* Just the status text — big, centered, pulsing */
-.gr-progress-text,
-.progress-text,
-[class*="progressText"],
-.progress span {
-    text-align: center !important;
-    font-size: 1.1rem !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.5em !important;
-    text-transform: uppercase !important;
+/* Style the wrapper as a small black box, centered on the page */
+.progress, .gr-progress, [class*="progress-wrap"], [class*="ProgressWrap"] {
+    background: rgba(0,0,0,0.65) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    border-radius: 6px !important;
+    padding: 14px 24px !important;
+    margin: 24px auto !important;
+    max-width: 320px !important;
+    width: fit-content !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    height: auto !important;
+    min-height: auto !important;
+}
+
+/* The actual % text — small, letter-spaced, centred, fades */
+.progress span, .progress p, .progress div,
+.gr-progress-text, .progress-text, [class*="progressText"] {
     color: #fff !important;
-    padding: 32px 0 !important;
-    text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+    font-size: 0.8rem !important;
+    letter-spacing: 0.25em !important;
+    text-transform: uppercase !important;
+    text-align: center !important;
+    background: transparent !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    height: auto !important;
     animation: room-text-fade 1.4s ease-in-out infinite;
-    display: block !important;
 }
 
 @keyframes room-text-fade {
     0%, 100% { opacity: 1; }
-    50%      { opacity: 0.45; }
-}
-
-/* Hide audio player when no audio loaded — kills the empty thin line */
-.audio-out:has(audio:not([src])) { display: none !important; }
-.audio-out [data-testid="audio-no-content"],
-.audio-out [class*="empty"] { display: none !important; }
-.audio-out audio[src=""],
-.audio-out audio:not([src]) {
-    display: none !important;
+    50%      { opacity: 0.5; }
 }
 
 /* ── Output panels ───────────────────────────────────────────────── */
@@ -714,7 +720,7 @@ def build_ui():
                                      elem_classes=["generate-btn"])
 
             audio_out = gr.Audio(label="", type="filepath", show_label=False,
-                                 elem_classes=["audio-out"])
+                                 elem_classes=["audio-out"], visible=False)
 
             download_all = gr.Button(
                 "⬇  Download All",
