@@ -222,13 +222,27 @@ def _generate_impl(prompt, outputs_select,
         progress(1.0, desc="Ready")
         # Show audio + "Download All" only when there's something to show
         has_audio = bool(audio_out and os.path.exists(audio_out))
-        has_files = bool(all_files) or has_audio
+        downloadable = ([audio_out] if has_audio else []) + list(all_files)
+        has_files = bool(downloadable)
+
         audio_update = (
             gr.update(value=audio_out, visible=True) if has_audio
             else gr.update(value=None, visible=False)
         )
         download_all_update = gr.update(visible=has_files)
-        return audio_update, all_files if all_files else None, download_all_update, info
+
+        # Build hidden HTML with one <a download> per file. Gradio serves
+        # absolute paths via `/file=`. The JS click handler clicks each one.
+        if downloadable:
+            anchors = "".join(
+                f'<a href="/file={fp}" download="{os.path.basename(fp)}"></a>'
+                for fp in downloadable
+            )
+            files_html = f'<div id="room-file-anchors">{anchors}</div>'
+        else:
+            files_html = ""
+
+        return audio_update, files_html, download_all_update, info
     except gr.Error:
         raise
     except Exception as e:
@@ -714,11 +728,12 @@ def build_ui():
 
             # Hidden via CSS only — needs to be rendered in the DOM so its
             # file <a> tags exist for the Download All JS to click.
-            download_files = gr.File(
-                file_count="multiple",
-                elem_classes=["files-out-hidden"],
+            # Hidden HTML holding download anchors — we control its markup
+            # directly so there's no Gradio empty-state visual to leak through.
+            download_files = gr.HTML(
+                value="",
                 elem_id="room-hidden-files",
-                show_label=False,
+                elem_classes=["files-out-hidden"],
             )
             info = gr.Markdown("", elem_classes=["info-line"])
 
@@ -748,49 +763,18 @@ def build_ui():
             outputs=[],
             js="""
             () => {
-                console.log('[ROOM] Download All clicked');
-                const container = document.getElementById('room-hidden-files');
-                if (!container) {
-                    console.warn('[ROOM] hidden file container not found');
-                    return;
-                }
-                // Try multiple selectors — Gradio renders downloads variously
-                // across versions. Anchors with download attr or /file= href
-                // are the classic; otherwise look for any anchor with href.
-                let targets = Array.from(container.querySelectorAll(
-                    'a[download], a[href*="/file="], a[href*="gradio_api/file="]'
-                ));
-                if (targets.length === 0) {
-                    targets = Array.from(container.querySelectorAll('a[href]'));
-                }
-                if (targets.length === 0) {
-                    // Fallback: Gradio v6 sometimes renders the download as a
-                    // <button> with an href on a child anchor or as a click
-                    // handler. Find any descendant anchor.
-                    targets = Array.from(container.getElementsByTagName('a'));
-                }
-                console.log('[ROOM] Found ' + targets.length + ' download targets');
-                if (targets.length === 0) return;
-
-                targets.forEach((el, i) => setTimeout(() => {
-                    try {
-                        const href = el.getAttribute('href');
-                        if (href) {
-                            // Force a fresh anchor with download attr so the
-                            // browser saves rather than navigates.
-                            const a = document.createElement('a');
-                            a.href = href;
-                            a.download = (el.getAttribute('download') ||
-                                          href.split('/').pop().split('?')[0] ||
-                                          'room_file');
-                            a.style.display = 'none';
-                            document.body.appendChild(a);
-                            a.click();
-                            setTimeout(() => document.body.removeChild(a), 100);
-                        } else {
-                            el.click();
-                        }
-                    } catch (e) { console.warn('[ROOM] download err', e); }
+                const container = document.getElementById('room-file-anchors')
+                                || document.getElementById('room-hidden-files');
+                if (!container) return;
+                const links = container.querySelectorAll('a[href][download]');
+                links.forEach((a, i) => setTimeout(() => {
+                    const fresh = document.createElement('a');
+                    fresh.href = a.getAttribute('href');
+                    fresh.download = a.getAttribute('download') || 'room_file';
+                    fresh.style.display = 'none';
+                    document.body.appendChild(fresh);
+                    fresh.click();
+                    setTimeout(() => document.body.removeChild(fresh), 100);
                 }, i * 300));
             }
             """,
@@ -841,13 +825,14 @@ def main():
         theme=_theme,
         css=CSS,
         ssr_mode=False,
-        allowed_paths=[str(_ROOT / "assets")],
+        allowed_paths=[str(_ROOT / "assets"), str(_ROOT / "output")],
     )
 
 
-# Allow Gradio to serve the hero image (works in both local & HF Space launches).
+# Allow Gradio to serve hero image and generated audio/stems/midi
+# (works in both local & HF Space launches).
 try:
-    gr.set_static_paths(paths=[str(_ROOT / "assets")])
+    gr.set_static_paths(paths=[str(_ROOT / "assets"), str(_ROOT / "output")])
 except Exception:
     pass
 
