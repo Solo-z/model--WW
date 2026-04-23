@@ -451,59 +451,60 @@ label, .gr-input-label, span[data-testid="block-label"] {
     display: none !important;
 }
 
-/* ── Loading state — small clean box with just the % text ──────── */
-/* Nuke any filled bar / track visual inside the progress widget */
-.progress-bar,
-[class*="progressBar"],
-.gr-progress > div:not([class*="text"]):not([class*="Text"]),
-div[role="progressbar"],
-[class*="progress"] [class*="bar"]:not([class*="Bar"]),
+/* ── Loading state — completely hide Gradio's progress widget ────── */
+.progress, .gr-progress,
+[class*="progress-wrap"], [class*="ProgressWrap"],
+[class*="progressBar"], .progress-bar,
+.gr-progress > div, div[role="progressbar"],
+[class*="progress"] [class*="bar"],
 [class*="progress"] [class*="track"],
-[class*="progress"] [class*="fill"] {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    width: 0 !important;
+[class*="progress"] [class*="fill"],
+.progress-text, .gr-progress-text, [class*="progressText"],
+.progress span, .progress p, .progress div {
     display: none !important;
-}
-
-/* Style the wrapper as a small black box, centered on the page */
-.progress, .gr-progress, [class*="progress-wrap"], [class*="ProgressWrap"] {
-    background: rgba(0,0,0,0.65) !important;
-    border: 1px solid rgba(255,255,255,0.18) !important;
-    border-radius: 6px !important;
-    padding: 14px 24px !important;
-    margin: 24px auto !important;
-    max-width: 320px !important;
-    width: fit-content !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    height: auto !important;
-    min-height: auto !important;
-}
-
-/* The actual % text — small, letter-spaced, centred, fades */
-.progress span, .progress p, .progress div,
-.gr-progress-text, .progress-text, [class*="progressText"] {
-    color: #fff !important;
-    font-size: 0.8rem !important;
-    letter-spacing: 0.25em !important;
-    text-transform: uppercase !important;
-    text-align: center !important;
+    height: 0 !important;
+    width: 0 !important;
     background: transparent !important;
     border: none !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: auto !important;
-    height: auto !important;
-    animation: room-text-fade 1.4s ease-in-out infinite;
+    overflow: hidden !important;
+    visibility: hidden !important;
 }
 
-@keyframes room-text-fade {
-    0%, 100% { opacity: 1; }
-    50%      { opacity: 0.5; }
+/* While the Generate button is disabled (= a generation is running),
+   show a small rotating spinner on its left side. Pure CSS, no JS. */
+.generate-btn:disabled, .generate-btn[disabled],
+button.generate-btn:disabled, button.generate-btn[disabled],
+.gr-button-primary:disabled, .gr-button-primary[disabled] {
+    background: #fff !important;
+    color: #000 !important;
+    opacity: 1 !important;
+    cursor: progress !important;
+    position: relative;
+    padding-left: 64px !important;
+    text-align: center;
+}
+.generate-btn:disabled::before,
+.generate-btn[disabled]::before,
+button.generate-btn:disabled::before,
+button.generate-btn[disabled]::before,
+.gr-button-primary:disabled::before,
+.gr-button-primary[disabled]::before {
+    content: "";
+    position: absolute;
+    left: 28px;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    margin-top: -9px;
+    border: 2px solid rgba(0,0,0,0.18);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: room-spin 0.7s linear infinite;
+}
+@keyframes room-spin {
+    to { transform: rotate(360deg); }
 }
 
 /* ── Output panels ───────────────────────────────────────────────── */
