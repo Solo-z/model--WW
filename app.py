@@ -220,21 +220,21 @@ def _generate_impl(prompt, outputs_select,
         info = "Ready · " + " · ".join(info_parts) if info_parts else "Ready"
 
         progress(1.0, desc="Ready")
-        # Show audio + "Download All" only when there's something to show
         has_audio = bool(audio_out and os.path.exists(audio_out))
         downloadable = ([audio_out] if has_audio else []) + list(all_files)
         has_files = bool(downloadable)
 
-        audio_update = (
-            gr.update(value=audio_out, visible=True) if has_audio
-            else gr.update(value=None, visible=False)
-        )
+        # Keep audio component always visible — when no value, CSS hides
+        # the inner empty audio element so no thin line shows in idle state.
+        audio_update = audio_out if has_audio else None
         download_all_update = gr.update(visible=has_files)
 
         # Hidden anchors — invisible source for the Download All JS click handler.
+        # HF Spaces serves files under /gradio_api/file=; locally it's /file=.
+        url_prefix = "/gradio_api/file=" if os.environ.get("SPACE_ID") else "/file="
         if downloadable:
             anchors = "".join(
-                f'<a href="/file={fp}" download="{os.path.basename(fp)}"></a>'
+                f'<a href="{url_prefix}{fp}" download="{os.path.basename(fp)}"></a>'
                 for fp in downloadable
             )
             files_html = f'<div id="room-file-anchors">{anchors}</div>'
@@ -436,6 +436,19 @@ label, .gr-input-label, span[data-testid="block-label"] {
 @keyframes room-pulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
     50%      { box-shadow: 0 0 28px 6px rgba(255,255,255,0.18); }
+}
+
+/* Hide audio player visuals when there's no audio loaded yet */
+.audio-out:not(:has(audio[src]:not([src=""]))) {
+    height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+}
+.audio-out:not(:has(audio[src]:not([src=""]))) > * {
+    display: none !important;
 }
 
 /* ── Loading state — small clean box with just the % text ──────── */
@@ -720,7 +733,7 @@ def build_ui():
                                      elem_classes=["generate-btn"])
 
             audio_out = gr.Audio(label="", type="filepath", show_label=False,
-                                 elem_classes=["audio-out"], visible=False)
+                                 elem_classes=["audio-out"])
 
             download_all = gr.Button(
                 "⬇  Download All",
