@@ -220,10 +220,15 @@ def _generate_impl(prompt, outputs_select,
         info = "Ready · " + " · ".join(info_parts) if info_parts else "Ready"
 
         progress(1.0, desc="Ready")
-        # Show "Download All" button only if there are files to download
-        has_files = bool(all_files) or bool(audio_out)
+        # Show audio + "Download All" only when there's something to show
+        has_audio = bool(audio_out and os.path.exists(audio_out))
+        has_files = bool(all_files) or has_audio
+        audio_update = (
+            gr.update(value=audio_out, visible=True) if has_audio
+            else gr.update(value=None, visible=False)
+        )
         download_all_update = gr.update(visible=has_files)
-        return audio_out, all_files if all_files else None, download_all_update, info
+        return audio_update, all_files if all_files else None, download_all_update, info
     except gr.Error:
         raise
     except Exception as e:
@@ -420,69 +425,53 @@ label, .gr-input-label, span[data-testid="block-label"] {
     50%      { box-shadow: 0 0 28px 6px rgba(255,255,255,0.18); }
 }
 
-/* ── Generation visuals — chunky animated bar + clear status text ─ */
-.progress,
-.progress-text,
-[class*="Progress"],
-[class*="progress"],
-.gr-progress {
-    color: #fff !important;
-    background: transparent !important;
-}
-
-/* The progress bar fill — bold, full-width, glowing */
+/* ── Loading state — text-only, no bar ─────────────────────────── */
+/* Hide the progress bar visual entirely */
 .progress-bar,
 [class*="progressBar"],
 .gr-progress > div,
-div[role="progressbar"] {
-    background: linear-gradient(90deg,
-        rgba(255,255,255,0.15),
-        rgba(255,255,255,1),
-        rgba(255,255,255,0.15)) !important;
-    background-size: 200% 100% !important;
-    animation: room-shimmer 1.2s linear infinite !important;
-    height: 8px !important;
-    min-height: 8px !important;
-    border-radius: 4px !important;
-    box-shadow: 0 0 24px rgba(255,255,255,0.4) !important;
-    margin: 12px 0 !important;
-    width: 100% !important;
-    display: block !important;
+div[role="progressbar"],
+.gr-progress,
+[class*="progress-bar-container"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: none !important;
 }
 
-/* Bar background (the track) */
-.gr-progress, [class*="progress-bar-container"] {
-    background: rgba(255,255,255,0.08) !important;
-    border: 1px solid rgba(255,255,255,0.18) !important;
-    border-radius: 6px !important;
-    padding: 4px !important;
-    margin: 16px 0 !important;
-    width: 100% !important;
-}
-
-@keyframes room-shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-/* Loading status text — big, centered, letter-spaced */
+/* Just the status text — big, centered, pulsing */
 .gr-progress-text,
 .progress-text,
-[class*="progressText"] {
+[class*="progressText"],
+.progress span {
     text-align: center !important;
-    font-size: 0.95rem !important;
+    font-size: 1.1rem !important;
     font-weight: 500 !important;
-    letter-spacing: 0.4em !important;
+    letter-spacing: 0.5em !important;
     text-transform: uppercase !important;
     color: #fff !important;
-    padding: 20px 0 12px 0 !important;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
-    animation: room-text-fade 1.6s ease-in-out infinite;
+    padding: 32px 0 !important;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+    animation: room-text-fade 1.4s ease-in-out infinite;
+    display: block !important;
 }
 
 @keyframes room-text-fade {
     0%, 100% { opacity: 1; }
-    50%      { opacity: 0.55; }
+    50%      { opacity: 0.45; }
+}
+
+/* Hide audio player when no audio loaded — kills the empty thin line */
+.audio-out:has(audio:not([src])) { display: none !important; }
+.audio-out [data-testid="audio-no-content"],
+.audio-out [class*="empty"] { display: none !important; }
+.audio-out audio[src=""],
+.audio-out audio:not([src]) {
+    display: none !important;
 }
 
 /* ── Output panels ───────────────────────────────────────────────── */
@@ -714,7 +703,7 @@ def build_ui():
                                      elem_classes=["generate-btn"])
 
             audio_out = gr.Audio(label="", type="filepath", show_label=False,
-                                 elem_classes=["audio-out"])
+                                 elem_classes=["audio-out"], visible=False)
 
             download_all = gr.Button(
                 "⬇  Download All",
