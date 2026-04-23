@@ -220,29 +220,10 @@ def _generate_impl(prompt, outputs_select,
         info = "Ready · " + " · ".join(info_parts) if info_parts else "Ready"
 
         progress(1.0, desc="Ready")
-        # Show audio + "Download All" only when there's something to show
-        has_audio = bool(audio_out and os.path.exists(audio_out))
-        downloadable = ([audio_out] if has_audio else []) + list(all_files)
-        has_files = bool(downloadable)
-
-        audio_update = (
-            gr.update(value=audio_out, visible=True) if has_audio
-            else gr.update(value=None, visible=False)
-        )
+        # Show "Download All" button only if there are files to download
+        has_files = bool(all_files) or bool(audio_out)
         download_all_update = gr.update(visible=has_files)
-
-        # Hidden anchors — invisible to the eye, only used by the
-        # Download All button's JS click handler.
-        if downloadable:
-            anchors = "".join(
-                f'<a href="/file={fp}" download="{os.path.basename(fp)}"></a>'
-                for fp in downloadable
-            )
-            files_html = f'<div id="room-file-anchors" style="display:none">{anchors}</div>'
-        else:
-            files_html = ""
-
-        return audio_update, files_html, download_all_update, info
+        return audio_out, all_files if all_files else None, download_all_update, info
     except gr.Error:
         raise
     except Exception as e:
@@ -439,53 +420,69 @@ label, .gr-input-label, span[data-testid="block-label"] {
     50%      { box-shadow: 0 0 28px 6px rgba(255,255,255,0.18); }
 }
 
-/* ── Loading state — text-only, no bar ─────────────────────────── */
-/* Hide the progress bar visual entirely */
+/* ── Generation visuals — chunky animated bar + clear status text ─ */
+.progress,
+.progress-text,
+[class*="Progress"],
+[class*="progress"],
+.gr-progress {
+    color: #fff !important;
+    background: transparent !important;
+}
+
+/* The progress bar fill — bold, full-width, glowing */
 .progress-bar,
 [class*="progressBar"],
 .gr-progress > div,
-div[role="progressbar"],
-.gr-progress,
-[class*="progress-bar-container"] {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    display: none !important;
+div[role="progressbar"] {
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.15),
+        rgba(255,255,255,1),
+        rgba(255,255,255,0.15)) !important;
+    background-size: 200% 100% !important;
+    animation: room-shimmer 1.2s linear infinite !important;
+    height: 8px !important;
+    min-height: 8px !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 24px rgba(255,255,255,0.4) !important;
+    margin: 12px 0 !important;
+    width: 100% !important;
+    display: block !important;
 }
 
-/* Just the status text — big, centered, pulsing */
+/* Bar background (the track) */
+.gr-progress, [class*="progress-bar-container"] {
+    background: rgba(255,255,255,0.08) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    border-radius: 6px !important;
+    padding: 4px !important;
+    margin: 16px 0 !important;
+    width: 100% !important;
+}
+
+@keyframes room-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Loading status text — big, centered, letter-spaced */
 .gr-progress-text,
 .progress-text,
-[class*="progressText"],
-.progress span {
+[class*="progressText"] {
     text-align: center !important;
-    font-size: 1.1rem !important;
+    font-size: 0.95rem !important;
     font-weight: 500 !important;
-    letter-spacing: 0.5em !important;
+    letter-spacing: 0.4em !important;
     text-transform: uppercase !important;
     color: #fff !important;
-    padding: 32px 0 !important;
-    text-shadow: 0 2px 12px rgba(0,0,0,0.7);
-    animation: room-text-fade 1.4s ease-in-out infinite;
-    display: block !important;
+    padding: 20px 0 12px 0 !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    animation: room-text-fade 1.6s ease-in-out infinite;
 }
 
 @keyframes room-text-fade {
     0%, 100% { opacity: 1; }
-    50%      { opacity: 0.45; }
-}
-
-/* Hide audio player when no audio loaded — kills the empty thin line */
-.audio-out:has(audio:not([src])) { display: none !important; }
-.audio-out [data-testid="audio-no-content"],
-.audio-out [class*="empty"] { display: none !important; }
-.audio-out audio[src=""],
-.audio-out audio:not([src]) {
-    display: none !important;
+    50%      { opacity: 0.55; }
 }
 
 /* ── Output panels ───────────────────────────────────────────────── */
@@ -519,21 +516,27 @@ div[role="progressbar"],
     transform: translateY(-1px);
 }
 
-/* gr.HTML container — strip all Gradio chrome so it never shows visually */
+/* Hidden file source — kept off-screen but still in the DOM so JS can read URLs */
 #room-hidden-files,
 .files-out-hidden,
 .gradio-container #room-hidden-files,
 .gradio-container .files-out-hidden {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    min-height: 0 !important;
+    position: fixed !important;
+    left: -99999px !important;
+    top: -99999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    max-width: 1px !important;
+    max-height: 1px !important;
     overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
 }
-#room-hidden-files:empty,
-.files-out-hidden:empty { display: none !important; }
+#room-hidden-files * { pointer-events: none !important; }
 
 /* Downloads panel — clearly visible when files exist, empty state hidden */
 .files-out {
@@ -711,7 +714,7 @@ def build_ui():
                                      elem_classes=["generate-btn"])
 
             audio_out = gr.Audio(label="", type="filepath", show_label=False,
-                                 elem_classes=["audio-out"], visible=False)
+                                 elem_classes=["audio-out"])
 
             download_all = gr.Button(
                 "⬇  Download All",
@@ -722,12 +725,11 @@ def build_ui():
 
             # Hidden via CSS only — needs to be rendered in the DOM so its
             # file <a> tags exist for the Download All JS to click.
-            # Hidden HTML holding download anchors — we control its markup
-            # directly so there's no Gradio empty-state visual to leak through.
-            download_files = gr.HTML(
-                value="",
-                elem_id="room-hidden-files",
+            download_files = gr.File(
+                file_count="multiple",
                 elem_classes=["files-out-hidden"],
+                elem_id="room-hidden-files",
+                show_label=False,
             )
             info = gr.Markdown("", elem_classes=["info-line"])
 
@@ -757,18 +759,49 @@ def build_ui():
             outputs=[],
             js="""
             () => {
-                const container = document.getElementById('room-file-anchors')
-                                || document.getElementById('room-hidden-files');
-                if (!container) return;
-                const links = container.querySelectorAll('a[href][download]');
-                links.forEach((a, i) => setTimeout(() => {
-                    const fresh = document.createElement('a');
-                    fresh.href = a.getAttribute('href');
-                    fresh.download = a.getAttribute('download') || 'room_file';
-                    fresh.style.display = 'none';
-                    document.body.appendChild(fresh);
-                    fresh.click();
-                    setTimeout(() => document.body.removeChild(fresh), 100);
+                console.log('[ROOM] Download All clicked');
+                const container = document.getElementById('room-hidden-files');
+                if (!container) {
+                    console.warn('[ROOM] hidden file container not found');
+                    return;
+                }
+                // Try multiple selectors — Gradio renders downloads variously
+                // across versions. Anchors with download attr or /file= href
+                // are the classic; otherwise look for any anchor with href.
+                let targets = Array.from(container.querySelectorAll(
+                    'a[download], a[href*="/file="], a[href*="gradio_api/file="]'
+                ));
+                if (targets.length === 0) {
+                    targets = Array.from(container.querySelectorAll('a[href]'));
+                }
+                if (targets.length === 0) {
+                    // Fallback: Gradio v6 sometimes renders the download as a
+                    // <button> with an href on a child anchor or as a click
+                    // handler. Find any descendant anchor.
+                    targets = Array.from(container.getElementsByTagName('a'));
+                }
+                console.log('[ROOM] Found ' + targets.length + ' download targets');
+                if (targets.length === 0) return;
+
+                targets.forEach((el, i) => setTimeout(() => {
+                    try {
+                        const href = el.getAttribute('href');
+                        if (href) {
+                            // Force a fresh anchor with download attr so the
+                            // browser saves rather than navigates.
+                            const a = document.createElement('a');
+                            a.href = href;
+                            a.download = (el.getAttribute('download') ||
+                                          href.split('/').pop().split('?')[0] ||
+                                          'room_file');
+                            a.style.display = 'none';
+                            document.body.appendChild(a);
+                            a.click();
+                            setTimeout(() => document.body.removeChild(a), 100);
+                        } else {
+                            el.click();
+                        }
+                    } catch (e) { console.warn('[ROOM] download err', e); }
                 }, i * 300));
             }
             """,
@@ -819,14 +852,13 @@ def main():
         theme=_theme,
         css=CSS,
         ssr_mode=False,
-        allowed_paths=[str(_ROOT / "assets"), str(_ROOT / "output")],
+        allowed_paths=[str(_ROOT / "assets")],
     )
 
 
-# Allow Gradio to serve hero image and generated audio/stems/midi
-# (works in both local & HF Space launches).
+# Allow Gradio to serve the hero image (works in both local & HF Space launches).
 try:
-    gr.set_static_paths(paths=[str(_ROOT / "assets"), str(_ROOT / "output")])
+    gr.set_static_paths(paths=[str(_ROOT / "assets")])
 except Exception:
     pass
 
