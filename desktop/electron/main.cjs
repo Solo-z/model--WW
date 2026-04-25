@@ -168,6 +168,22 @@ ipcMain.handle("room:send-to-reaper", async (_event, generationId) => {
   return { ok: true, commandFile, count: commands.length };
 });
 
+ipcMain.handle("room:install-reaper-script", async () => {
+  const source = path.join(__dirname, "reaper_agent.lua");
+  const targetDir = path.join(app.getPath("documents"), "ROOM", "Reaper");
+  const target = path.join(targetDir, "reaper_agent.lua");
+
+  fs.mkdirSync(targetDir, { recursive: true });
+  fs.copyFileSync(source, target);
+  await shell.openPath(targetDir);
+
+  return {
+    ok: true,
+    path: target,
+    instructions: "In REAPER: Actions -> Show action list -> New action -> Load ReaScript -> choose reaper_agent.lua -> Run.",
+  };
+});
+
 ipcMain.handle("room:generate", async (_event, payload) => {
   const prompt = String(payload.prompt || "").trim();
   if (!prompt) throw new Error("Write a prompt first.");

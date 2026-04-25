@@ -85,6 +85,20 @@ function App() {
     }
   }
 
+  async function installReaperScript() {
+    setError("");
+    const res = await window.room.installReaperScript();
+    if (!res.ok) {
+      setError(res.error || "Could not install REAPER script.");
+      return;
+    }
+    setProgress({
+      stage: "reaper",
+      pct: 100,
+      detail: "REAPER script copied — load it from the opened folder",
+    });
+  }
+
   async function saveSettings(next) {
     const merged = { ...settings, ...next };
     setSettings(merged);
@@ -151,6 +165,9 @@ function App() {
             REAPER command folder
             <input value={settings.reaperDir || ""} onChange={(e) => saveSettings({ reaperDir: e.target.value })} />
           </label>
+          <button className="secondary-action" onClick={installReaperScript}>
+            Install REAPER Script
+          </button>
           <label className="check">
             <input type="checkbox" checked={settings.autoOpenFolder} onChange={(e) => saveSettings({ autoOpenFolder: e.target.checked })} />
             Open output folder after generation

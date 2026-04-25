@@ -209,6 +209,23 @@ audio {
   backdrop-filter: blur(18px);
 }
 
+.secondary-action {
+  width: 100%;
+  margin-top: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  padding: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.secondary-action:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .result p,
 .error {
   text-align: center;

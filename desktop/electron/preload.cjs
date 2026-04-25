@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("room", {
   generate: (payload) => ipcRenderer.invoke("room:generate", payload),
   revealGeneration: (generationId) => ipcRenderer.invoke("room:reveal", generationId),
   sendToReaper: (generationId) => ipcRenderer.invoke("room:send-to-reaper", generationId),
+  installReaperScript: () => ipcRenderer.invoke("room:install-reaper-script"),
   getSettings: () => ipcRenderer.invoke("room:get-settings"),
   saveSettings: (settings) => ipcRenderer.invoke("room:save-settings", settings),
   onProgress: (callback) => {
