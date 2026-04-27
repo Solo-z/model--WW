@@ -155,9 +155,7 @@ def _friendly_error(exc: Exception) -> str:
     return "Generation failed. Try again, or simplify the prompt."
 
 
-def _generate_impl(prompt, outputs_select,
-                   duration, seed, steps, guidance,
-                   progress=gr.Progress()):
+def _generate_impl(prompt, outputs_select, duration, seed, steps, guidance):
     """Core generation logic — separated so ZeroGPU decorator can wrap it."""
     import traceback
 
@@ -172,13 +170,11 @@ def _generate_impl(prompt, outputs_select,
     extract_midi = "MIDI" in selected
 
     try:
-        progress(0.05, desc="Composing")
         engine = _get_engine()
 
         out_dir = str(_ROOT / "output" / "room")
         os.makedirs(out_dir, exist_ok=True)
 
-        progress(0.20, desc="Generating")
         result = engine.generate(
             prompt=prompt,
             voice_ref=None,
@@ -190,8 +186,6 @@ def _generate_impl(prompt, outputs_select,
             guidance_scale=float(guidance),
             save_dir=out_dir,
         )
-        progress(0.92, desc="Mastering")
-
         audio_out = result.get("audio_path")
 
         stem_files = []
@@ -219,7 +213,6 @@ def _generate_impl(prompt, outputs_select,
             info_parts.append(f"MIDI failed: {midi_err}")
         info = "Ready · " + " · ".join(info_parts) if info_parts else "Ready"
 
-        progress(1.0, desc="Ready")
         # Show "Download All" button only if there are files to download
         has_files = bool(all_files) or bool(audio_out)
         download_all_update = gr.update(visible=has_files)
@@ -407,82 +400,30 @@ label, .gr-input-label, span[data-testid="block-label"] {
 }
 .generate-btn:active { transform: translateY(0) scale(0.99); }
 
-/* While generating, button glows softly */
+/* While generating, keep the button quiet — no progress UI for now */
 .generate-btn:disabled,
 .gr-button-primary:disabled {
     background: #fff !important;
     color: #000 !important;
     opacity: 1 !important;
-    animation: room-pulse 1.6s ease-in-out infinite;
-}
-@keyframes room-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
-    50%      { box-shadow: 0 0 28px 6px rgba(255,255,255,0.18); }
+    animation: none !important;
 }
 
-/* ── Generation visuals — chunky animated bar + clear status text ─ */
+/* Hide all Gradio progress surfaces. */
 .progress,
 .progress-text,
 [class*="Progress"],
 [class*="progress"],
-.gr-progress {
-    color: #fff !important;
-    background: transparent !important;
-}
-
-/* The progress bar fill — bold, full-width, glowing */
-.progress-bar,
-[class*="progressBar"],
-.gr-progress > div,
-div[role="progressbar"] {
-    background: linear-gradient(90deg,
-        rgba(255,255,255,0.15),
-        rgba(255,255,255,1),
-        rgba(255,255,255,0.15)) !important;
-    background-size: 200% 100% !important;
-    animation: room-shimmer 1.2s linear infinite !important;
-    height: 8px !important;
-    min-height: 8px !important;
-    border-radius: 4px !important;
-    box-shadow: 0 0 24px rgba(255,255,255,0.4) !important;
-    margin: 12px 0 !important;
-    width: 100% !important;
-    display: block !important;
-}
-
-/* Bar background (the track) */
-.gr-progress, [class*="progress-bar-container"] {
-    background: rgba(255,255,255,0.08) !important;
-    border: 1px solid rgba(255,255,255,0.18) !important;
-    border-radius: 6px !important;
-    padding: 4px !important;
-    margin: 16px 0 !important;
-    width: 100% !important;
-}
-
-@keyframes room-shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-/* Loading status text — big, centered, letter-spaced */
+.gr-progress,
 .gr-progress-text,
-.progress-text,
-[class*="progressText"] {
-    text-align: center !important;
-    font-size: 0.95rem !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.4em !important;
-    text-transform: uppercase !important;
-    color: #fff !important;
-    padding: 20px 0 12px 0 !important;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
-    animation: room-text-fade 1.6s ease-in-out infinite;
-}
-
-@keyframes room-text-fade {
-    0%, 100% { opacity: 1; }
-    50%      { opacity: 0.55; }
+div[role="progressbar"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* ── Output panels ───────────────────────────────────────────────── */
@@ -747,6 +688,7 @@ def build_ui():
             fn=generate,
             inputs=[prompt, outputs_select, duration, seed, steps, guidance],
             outputs=[audio_out, download_files, download_all, info],
+            show_progress="hidden",
         )
 
         # No Python work — JS finds the served file links inside the hidden
