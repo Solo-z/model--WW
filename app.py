@@ -426,6 +426,58 @@ div[role="progressbar"] {
     padding: 0 !important;
 }
 
+/* Simple custom loading bar — stable, no scrollbars, no interaction. */
+.room-loading {
+    display: none;
+    width: 100%;
+    max-width: 620px;
+    margin: 22px auto 8px auto;
+    text-align: center;
+    pointer-events: none;
+    user-select: none;
+    overflow: hidden;
+}
+.room-loading.is-loading {
+    display: block;
+}
+.room-loading-track {
+    width: 100%;
+    height: 38px;
+    padding: 5px;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.86);
+    border-radius: 999px;
+    background: rgba(0,0,0,0.42);
+    box-shadow: 0 0 22px rgba(0,0,0,0.45);
+}
+.room-loading-stripes {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    background:
+        repeating-linear-gradient(
+            115deg,
+            rgba(255,255,255,0.95) 0px,
+            rgba(255,255,255,0.95) 10px,
+            rgba(255,255,255,0.16) 10px,
+            rgba(255,255,255,0.16) 20px
+        );
+    background-size: 56px 56px;
+    animation: room-loading-move 0.8s linear infinite;
+}
+.room-loading-label {
+    margin-top: 12px;
+    color: rgba(255,255,255,0.82);
+    font-size: 1rem;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+}
+@keyframes room-loading-move {
+    from { background-position: 0 0; }
+    to { background-position: 56px 0; }
+}
+
 /* ── Output panels ───────────────────────────────────────────────── */
 .audio-out audio {
     width: 100% !important;
@@ -654,6 +706,15 @@ def build_ui():
             generate_btn = gr.Button("⏵  Generate", variant="primary", size="lg",
                                      elem_classes=["generate-btn"])
 
+            gr.HTML("""
+            <div id="room-loading" class="room-loading" aria-live="polite">
+                <div class="room-loading-track">
+                    <div class="room-loading-stripes"></div>
+                </div>
+                <div class="room-loading-label">loading...</div>
+            </div>
+            """)
+
             audio_out = gr.Audio(label="", type="filepath", show_label=False,
                                  elem_classes=["audio-out"])
 
@@ -689,6 +750,24 @@ def build_ui():
             inputs=[prompt, outputs_select, duration, seed, steps, guidance],
             outputs=[audio_out, download_files, download_all, info],
             show_progress="hidden",
+            js="""
+            (prompt, outputs_select, duration, seed, steps, guidance) => {
+                const el = document.getElementById('room-loading');
+                if (el) el.classList.add('is-loading');
+                return [prompt, outputs_select, duration, seed, steps, guidance];
+            }
+            """,
+        ).then(
+            fn=lambda: None,
+            inputs=[],
+            outputs=[],
+            show_progress="hidden",
+            js="""
+            () => {
+                const el = document.getElementById('room-loading');
+                if (el) el.classList.remove('is-loading');
+            }
+            """,
         )
 
         # No Python work — JS finds the served file links inside the hidden
