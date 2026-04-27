@@ -445,13 +445,14 @@ div[role="progressbar"] {
     height: 38px;
     padding: 5px;
     overflow: hidden;
+    position: relative;
     border: 2px solid rgba(255,255,255,0.86);
     border-radius: 999px;
     background: rgba(0,0,0,0.42);
     box-shadow: 0 0 22px rgba(0,0,0,0.45);
 }
 .room-loading-stripes {
-    width: 100%;
+    width: 0%;
     height: 100%;
     border-radius: 999px;
     background:
@@ -464,6 +465,7 @@ div[role="progressbar"] {
         );
     background-size: 56px 56px;
     animation: room-loading-move 0.8s linear infinite;
+    transition: width 0.35s ease;
 }
 .room-loading-label {
     margin-top: 12px;
@@ -709,9 +711,9 @@ def build_ui():
             gr.HTML("""
             <div id="room-loading" class="room-loading" aria-live="polite">
                 <div class="room-loading-track">
-                    <div class="room-loading-stripes"></div>
+                    <div class="room-loading-stripes" id="room-loading-fill"></div>
                 </div>
-                <div class="room-loading-label">generating...</div>
+                <div class="room-loading-label">generating... <span id="room-loading-percent">0%</span></div>
             </div>
             """)
 
@@ -753,7 +755,25 @@ def build_ui():
             js="""
             (prompt, outputs_select, duration, seed, steps, guidance) => {
                 const el = document.getElementById('room-loading');
+                const fill = document.getElementById('room-loading-fill');
+                const pct = document.getElementById('room-loading-percent');
+                if (window.roomLoadingTimer) {
+                    clearInterval(window.roomLoadingTimer);
+                    window.roomLoadingTimer = null;
+                }
+                window.roomLoadingPercent = 0;
+                if (fill) fill.style.width = '0%';
+                if (pct) pct.textContent = '0%';
                 if (el) el.classList.add('is-loading');
+                window.roomLoadingTimer = setInterval(() => {
+                    const current = window.roomLoadingPercent || 0;
+                    if (current >= 99) return;
+                    const step = current < 70 ? 2 : current < 90 ? 1 : 0.25;
+                    window.roomLoadingPercent = Math.min(99, current + step);
+                    const shown = Math.floor(window.roomLoadingPercent);
+                    if (fill) fill.style.width = shown + '%';
+                    if (pct) pct.textContent = shown + '%';
+                }, 850);
                 return [prompt, outputs_select, duration, seed, steps, guidance];
             }
             """,
@@ -765,7 +785,18 @@ def build_ui():
             js="""
             () => {
                 const el = document.getElementById('room-loading');
-                if (el) el.classList.remove('is-loading');
+                const fill = document.getElementById('room-loading-fill');
+                const pct = document.getElementById('room-loading-percent');
+                if (window.roomLoadingTimer) {
+                    clearInterval(window.roomLoadingTimer);
+                    window.roomLoadingTimer = null;
+                }
+                window.roomLoadingPercent = 100;
+                if (fill) fill.style.width = '100%';
+                if (pct) pct.textContent = '100%';
+                setTimeout(() => {
+                    if (el) el.classList.remove('is-loading');
+                }, 650);
             }
             """,
         )
