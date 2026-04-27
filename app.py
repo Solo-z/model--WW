@@ -711,7 +711,7 @@ def build_ui():
                 <div class="room-loading-track">
                     <div class="room-loading-stripes"></div>
                 </div>
-                <div class="room-loading-label">loading...</div>
+                <div class="room-loading-label">generating...</div>
             </div>
             """)
 
