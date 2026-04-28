@@ -11,18 +11,25 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <header class="nav">
+      <a href="#top" class="brand">
+        <span class="glyph">⌘</span>
+        <span>ROOM</span>
+      </a>
+      <nav>
+        <a href="#download">Download</a>
+        <a href="#daw">DAW</a>
+        <a href="https://huggingface.co/spaces/solo363614/ROOM-v2">Browser</a>
+      </nav>
+    </header>
+
     <main>
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">A Foundation Model for Music Production</p>
-          <h1>ROOM</h1>
-          <p class="lede">
-            Generate finished tracks, stems, and MIDI from a prompt. Export to any
-            DAW. Send directly to REAPER with the connector.
-          </p>
+      <section class="hero slide" id="top">
+        <img src="./assets/deck-title.png" alt="ROOM — A Foundation Model for Music Production" />
+        <div class="hero-overlay">
           <div class="actions">
             <a class="primary" href="https://github.com/Solo-z/model--WW/releases/latest">
-              Download App
+              Download ROOM
             </a>
             <a class="secondary" href="https://huggingface.co/spaces/solo363614/ROOM-v2">
               Try in Browser
@@ -31,45 +38,79 @@
         </div>
       </section>
 
-      <section class="cards">
-        <article>
-          <h2>Desktop App</h2>
+      <section class="deck-section">
+        <div class="slide-frame">
+          <img src="./assets/deck-what-we-do.png" alt="What We Do" />
+        </div>
+        <div class="side-copy">
+          <p class="eyebrow">What We Do</p>
+          <h2>Music production, not generic AI music.</h2>
           <p>
-            The ROOM app connects to the hosted model, saves generations locally,
-            and keeps your audio, stems, and MIDI organized.
+            ROOM turns a prompt into a finished track, then gives producers the
+            useful materials: full mix, stems, and MIDI. The workflow is designed
+            to land inside real DAWs, not stay trapped in a browser.
           </p>
-        </article>
-        <article>
-          <h2>Any DAW</h2>
-          <p>
-            Export WAV stems and MIDI files. Drag them into Ableton, FL Studio,
-            Logic, Bitwig, Studio One, Cubase, Pro Tools, or REAPER.
-          </p>
-        </article>
-        <article>
-          <h2>REAPER Connector</h2>
-          <p>
-            Install the bundled ReaScript once, then click Send to REAPER inside
-            the ROOM app to import generated audio tracks automatically.
-          </p>
-        </article>
-      </section>
-
-      <section class="download">
-        <h2>Launch Build</h2>
-        <p>
-          Preview builds are published through GitHub Releases. Windows is ready
-          first; macOS builds are produced by the release workflow.
-        </p>
-        <div class="actions">
-          <a class="primary" href="https://github.com/Solo-z/model--WW/releases/latest">
-            Latest Release
-          </a>
-          <a class="secondary" href="https://github.com/Solo-z/model--WW/tree/main/desktop">
-            Source
-          </a>
         </div>
       </section>
+
+      <section class="deck-section reverse">
+        <div class="side-copy">
+          <p class="eyebrow">Product Direction</p>
+          <h2>The cursor for music.</h2>
+          <p>
+            Describe the track. Generate audio. Export stems and MIDI. Send the
+            result into REAPER now, and any DAW through standard files.
+          </p>
+        </div>
+        <div class="slide-frame">
+          <img src="./assets/deck-product-direction.png" alt="Product Direction" />
+        </div>
+      </section>
+
+      <section class="download slide" id="download">
+        <div class="tree-bg"></div>
+        <div class="download-copy">
+          <p class="eyebrow">Launch Build</p>
+          <h2>Download the app.</h2>
+          <p>
+            Windows preview is available now through GitHub Releases. macOS
+            builds are produced by the release workflow and will appear alongside
+            Windows when the release action completes.
+          </p>
+          <div class="actions">
+            <a class="primary" href="https://github.com/Solo-z/model--WW/releases/latest">
+              Latest Release
+            </a>
+            <a class="secondary" href="https://github.com/Solo-z/model--WW/tree/main/desktop">
+              Desktop Source
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="daw" id="daw">
+        <p class="eyebrow">Works With Your DAW</p>
+        <h2>Export everywhere. Connect deeper over time.</h2>
+        <div class="daw-grid">
+          <article>
+            <h3>Any DAW</h3>
+            <p>Drag WAV stems and MIDI into Ableton, FL Studio, Logic, Bitwig, Studio One, Cubase, Pro Tools, or REAPER.</p>
+          </article>
+          <article>
+            <h3>REAPER Connector</h3>
+            <p>Install the bundled ReaScript once. Click Send to REAPER inside the ROOM app to import generated audio tracks.</p>
+          </article>
+          <article>
+            <h3>Browser Demo</h3>
+            <p>Use the hosted Space to try ROOM instantly before installing the desktop app.</p>
+          </article>
+        </div>
+      </section>
+
+      <footer>
+        <span>ROOM</span>
+        <span>A FOUNDATION MODEL FOR MUSIC PRODUCTION</span>
+      </footer>
     </main>
   </body>
 </html>

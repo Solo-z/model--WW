@@ -2,6 +2,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   min-height: 100%;
@@ -11,16 +15,62 @@ body {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+body {
+  overflow-x: hidden;
+}
+
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse at center, transparent 10%, #000 72%),
-    url("../assets/room_tree.png") center / contain no-repeat;
-  opacity: 0.72;
+    radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, #000 74%),
+    url("./assets/room_tree.png") center / contain no-repeat;
+  opacity: 0.34;
   mix-blend-mode: screen;
   pointer-events: none;
+}
+
+a {
+  color: inherit;
+}
+
+.nav {
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 32px;
+  color: rgba(255,255,255,0.88);
+  mix-blend-mode: screen;
+}
+
+.brand,
+.nav nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand,
+.nav a {
+  text-decoration: none;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.nav nav {
+  gap: 24px;
+}
+
+.glyph {
+  opacity: 0.55;
 }
 
 main {
@@ -28,41 +78,33 @@ main {
   z-index: 1;
 }
 
+.slide {
+  position: relative;
+  min-height: 100vh;
+}
+
 .hero {
-  min-height: 78vh;
   display: grid;
   place-items: center;
-  padding: 80px 24px;
-  text-align: center;
+  overflow: hidden;
+  background: #000;
 }
 
-.hero-copy {
-  max-width: 900px;
+.hero > img {
+  width: 100%;
+  height: 100vh;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.96;
 }
 
-.eyebrow {
-  margin: 0 0 18px;
-  color: rgba(255,255,255,0.7);
-  font-size: clamp(0.7rem, 1vw, 0.95rem);
-  letter-spacing: 0.45em;
-  text-transform: uppercase;
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(6rem, 18vw, 16rem);
-  line-height: 0.86;
-  letter-spacing: -0.06em;
-  font-weight: 900;
-  text-shadow: 0 12px 40px rgba(0,0,0,0.85);
-}
-
-.lede {
-  max-width: 680px;
-  margin: 32px auto 0;
-  color: rgba(255,255,255,0.76);
-  font-size: clamp(1rem, 2vw, 1.3rem);
-  line-height: 1.55;
+.hero-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 72px;
+  display: grid;
+  place-items: center;
 }
 
 .actions {
@@ -70,23 +112,19 @@ h1 {
   gap: 14px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-top: 34px;
-}
-
-a {
-  color: inherit;
 }
 
 .primary,
 .secondary {
-  min-width: 190px;
-  padding: 16px 22px;
-  border-radius: 4px;
+  min-width: 210px;
+  padding: 17px 24px;
+  border-radius: 2px;
+  text-align: center;
   text-decoration: none;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  font-size: 0.78rem;
-  font-weight: 800;
+  font-size: 0.76rem;
+  font-weight: 850;
 }
 
 .primary {
@@ -95,50 +133,171 @@ a {
 }
 
 .secondary {
-  border: 1px solid rgba(255,255,255,0.35);
-  background: rgba(0,0,0,0.36);
+  border: 1px solid rgba(255,255,255,0.36);
+  background: rgba(0,0,0,0.42);
   backdrop-filter: blur(18px);
 }
 
-.cards {
+.deck-section {
+  min-height: 100vh;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-  max-width: 1080px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  align-items: center;
+  gap: 52px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 0 24px 80px;
+  padding: 96px 44px;
 }
 
-article,
-.download {
-  border: 1px solid rgba(255,255,255,0.16);
-  background: rgba(0,0,0,0.54);
-  backdrop-filter: blur(18px);
-  padding: 26px;
+.deck-section.reverse {
+  grid-template-columns: minmax(320px, 0.75fr) minmax(0, 1.25fr);
+}
+
+.slide-frame {
+  border: 1px solid rgba(255,255,255,0.12);
+  background: #050505;
+  box-shadow: 0 34px 120px rgba(0,0,0,0.9);
+}
+
+.slide-frame img {
+  display: block;
+  width: 100%;
+}
+
+.side-copy {
+  max-width: 520px;
+}
+
+.eyebrow {
+  margin: 0 0 20px;
+  color: rgba(255,255,255,0.58);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
 }
 
 h2 {
-  margin: 0 0 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-size: 0.9rem;
+  margin: 0;
+  font-size: clamp(2.2rem, 5vw, 4.8rem);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
 }
 
-article p,
-.download p {
-  margin: 0;
+.side-copy p:not(.eyebrow),
+.download-copy p,
+.daw p {
   color: rgba(255,255,255,0.68);
-  line-height: 1.65;
+  font-size: 1rem;
+  line-height: 1.7;
 }
 
 .download {
-  max-width: 860px;
-  margin: 0 auto 90px;
+  display: grid;
+  place-items: center;
+  padding: 92px 24px;
+  overflow: hidden;
+}
+
+.tree-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(0,0,0,0.08), #000 78%),
+    url("./assets/room_tree.png") center / contain no-repeat;
+  opacity: 0.82;
+  mix-blend-mode: screen;
+}
+
+.download-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 760px;
   text-align: center;
 }
 
-@media (max-width: 820px) {
-  .cards {
+.download-copy h2 {
+  font-size: clamp(3.8rem, 11vw, 10rem);
+}
+
+.daw {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 96px 32px 120px;
+}
+
+.daw > h2 {
+  max-width: 760px;
+}
+
+.daw-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 44px;
+}
+
+article {
+  min-height: 230px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.58);
+  backdrop-filter: blur(18px);
+  padding: 28px;
+}
+
+article h3 {
+  margin: 0 0 16px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.86rem;
+}
+
+article p {
+  margin: 0;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  padding: 28px 32px;
+  color: rgba(255,255,255,0.46);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 920px) {
+  .nav {
+    position: absolute;
+    padding: 20px;
+  }
+
+  .nav nav {
+    display: none;
+  }
+
+  .hero > img {
+    height: 74vh;
+  }
+
+  .hero-overlay {
+    bottom: 28px;
+  }
+
+  .deck-section,
+  .deck-section.reverse {
     grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 72px 20px;
+  }
+
+  .daw-grid {
+    grid-template-columns: 1fr;
+  }
+
+  footer {
+    flex-direction: column;
   }
 }
