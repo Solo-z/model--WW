@@ -8,7 +8,9 @@
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "build": "vite build",
     "start": "electron .",
-    "dist": "npm run build && electron-builder --win portable"
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win portable",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip"
   },
   "dependencies": {
     "@gradio/client": "^2.2.0"
@@ -39,6 +41,13 @@
       "target": [
         "portable"
       ]
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "identity": null
     }
   }
 }

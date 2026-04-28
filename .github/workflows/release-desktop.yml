@@ -1,0 +1,86 @@
+name: Release ROOM Desktop
+
+on:
+  push:
+    tags:
+      - "desktop-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist:win
+            artifact_name: ROOM-Windows
+            paths: |
+              desktop/release/*.exe
+          - os: macos-latest
+            script: dist:mac
+            artifact_name: ROOM-macOS
+            paths: |
+              desktop/release/*.dmg
+              desktop/release/*.zip
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install
+        working-directory: desktop
+        run: npm ci
+
+      - name: Build desktop app
+        working-directory: desktop
+        run: npm run ${{ matrix.script }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.paths }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ROOM Desktop ${{ github.ref_name }}
+          draft: false
+          prerelease: true
+          body: |
+            ROOM Desktop preview build.
+
+            - Windows portable `.exe`
+            - macOS `.dmg` / `.zip` preview build
+            - Powered by the hosted ROOM Hugging Face model
+            - Optional REAPER connector via bundled `reaper_agent.lua`
+          files: artifacts/**/*

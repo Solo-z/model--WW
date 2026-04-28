@@ -2,6 +2,12 @@
 
 Windows desktop client for ROOM.
 
+Download preview builds from:
+
+```text
+https://github.com/Solo-z/model--WW/releases/latest
+```
+
 ## What it does
 
 - Calls the hosted ROOM Hugging Face Space.
@@ -22,10 +28,18 @@ npm run dev
 ## Build Windows app
 
 ```bash
-npm run dist
+npm run dist:win
 ```
 
 Outputs go to `desktop/release/`.
+
+## Build macOS app
+
+Use macOS or GitHub Actions:
+
+```bash
+npm run dist:mac
+```
 
 ## REAPER integration
 
@@ -43,3 +57,5 @@ The app writes commands to:
 ```
 
 The Lua script imports the audio files into tracks.
+
+See `REAPER_CONNECTOR.md` for user-facing install instructions.
