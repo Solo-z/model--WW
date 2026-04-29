@@ -138,6 +138,12 @@ main {
   backdrop-filter: blur(18px);
 }
 
+.disabled {
+  color: rgba(255,255,255,0.45);
+  cursor: not-allowed;
+  border-color: rgba(255,255,255,0.18);
+}
+
 .deck-section {
   min-height: 100vh;
   display: grid;
