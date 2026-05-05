@@ -667,6 +667,71 @@ input[type="checkbox"] { accent-color: #fff !important; }
 
 /* Selection */
 ::selection { background: rgba(255,255,255,0.2); color: #fff; }
+
+/* ── Phone layout: same site, tighter composition ───────────────── */
+@media (max-width: 700px) {
+    body::before {
+        background-position: center top;
+        background-size: 132% auto;
+        opacity: 0.78;
+    }
+
+    body::after {
+        background:
+            linear-gradient(to bottom, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.22) 32%, rgba(0,0,0,0.94) 100%),
+            radial-gradient(ellipse at center, rgba(0,0,0,0.02) 20%, rgba(0,0,0,0.68) 100%);
+    }
+
+    .gradio-container {
+        max-width: 100% !important;
+        padding: 16px 18px 72px !important;
+    }
+
+    .room-hero {
+        min-height: 30vh;
+    }
+
+    .prompt-box {
+        margin: 0 auto 42px auto !important;
+        width: min(100%, 330px) !important;
+    }
+
+    .prompt-box textarea {
+        min-height: 78px !important;
+        font-size: 0.95rem !important;
+        padding: 18px 16px !important;
+        background: rgba(0,0,0,0.54) !important;
+    }
+
+    .toggles-row {
+        justify-content: flex-start !important;
+        width: min(100%, 330px) !important;
+        margin: 0 auto 56px auto !important;
+    }
+
+    .generate-btn,
+    .gr-button-primary,
+    button.primary,
+    .gradio-container button.lg {
+        width: min(100%, 360px) !important;
+        margin: 0 auto 28px auto !important;
+        padding: 24px 28px !important;
+        letter-spacing: 0.26em !important;
+        display: block !important;
+    }
+
+    .room-loading {
+        width: min(100%, 340px);
+        margin: 20px auto 0 auto;
+    }
+
+    .download-all-btn,
+    .download-all-btn button {
+        width: min(100%, 360px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
 """
 
 EXAMPLES = [
