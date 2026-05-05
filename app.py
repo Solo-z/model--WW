@@ -252,8 +252,8 @@ body::before {
     inset: 0;
     background-image: url('/gradio_api/file=assets/room_tree.png');
     background-repeat: no-repeat;
-    background-position: center center;
-    background-size: contain;
+    background-position: center top;
+    background-size: 100% auto;
     background-color: #000;
     opacity: 0.86;
     mix-blend-mode: screen;
@@ -282,7 +282,7 @@ body::after {
 
 /* Deck image is the hero. No extra overlay title/copy. */
 .room-hero {
-    min-height: 58vh;
+    min-height: 12vh;
     text-align: center;
     pointer-events: none;
 }
