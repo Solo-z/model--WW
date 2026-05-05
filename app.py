@@ -250,21 +250,24 @@ body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background-image: url('/gradio_api/file=assets/room_tree.png');
+    background-image: url('/gradio_api/file=assets/room_deck_title.png');
     background-repeat: no-repeat;
-    background-position: center center;
-    background-size: contain;
+    background-position: center top;
+    background-size: cover;
     background-color: #000;
-    opacity: 0.55;
-    mix-blend-mode: screen;
+    opacity: 0.92;
+    mix-blend-mode: normal;
     z-index: 0;
     pointer-events: none;
+    filter: contrast(1.08) brightness(1.08);
 }
 body::after {
     content: "";
     position: fixed;
     inset: 0;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%);
+    background:
+        linear-gradient(to bottom, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.0) 38%, rgba(0,0,0,0.62) 100%),
+        radial-gradient(ellipse at center, rgba(0,0,0,0) 38%, rgba(0,0,0,0.58) 100%);
     z-index: 1;
     pointer-events: none;
 }
@@ -273,18 +276,18 @@ body::after {
     z-index: 10 !important;
     max-width: 760px !important;
     margin: 0 auto !important;
-    padding: 5vh 24px 80px !important;
+    padding: 2vh 24px 90px !important;
     background: transparent !important;
 }
 
 /* ── Hero text — sits over the tree ──────────────────────────────── */
-.room-hero { text-align: center; padding: 8vh 0 6vh 0; }
+.room-hero { text-align: center; padding: 3vh 0 10vh 0; }
 .room-hero h1 {
-    font-size: clamp(5rem, 12vw, 11rem);
+    font-size: clamp(6.5rem, 15vw, 15rem);
     font-weight: 800;
     letter-spacing: -0.04em;
-    line-height: 0.95;
-    margin: 0 0 16px 0;
+    line-height: 0.82;
+    margin: 0 0 20px 0;
     color: #fff;
     user-select: none;
     text-shadow: 0 4px 24px rgba(0,0,0,0.7);
