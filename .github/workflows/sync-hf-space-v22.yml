@@ -1,0 +1,22 @@
+# Mirrors GitHub investor-demo-space -> Hugging Face investor/demo Space.
+# Repo secret required: HF_TOKEN (https://huggingface.co/settings/tokens)
+name: Sync to Hugging Face Space V22
+
+on:
+  push:
+    branches: [investor-demo-space]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: huggingface/hub-sync@v0.1.0
+        with:
+          github_repo_id: ${{ github.repository }}
+          huggingface_repo_id: solo363614/ROOM-v22
+          hf_token: ${{ secrets.HF_TOKEN }}
+          repo_type: space
+          space_sdk: gradio
