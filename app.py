@@ -280,8 +280,12 @@ body::after {
     background: transparent !important;
 }
 
-/* ── Hero text — sits over the tree ──────────────────────────────── */
-.room-hero { text-align: center; padding: 3vh 0 10vh 0; }
+/* Deck image is the hero. No extra overlay title/copy. */
+.room-hero {
+    min-height: 58vh;
+    text-align: center;
+    pointer-events: none;
+}
 .room-hero h1 {
     font-size: clamp(6.5rem, 15vw, 15rem);
     font-weight: 800;
@@ -680,16 +684,7 @@ def build_ui():
     with gr.Blocks(title="ROOM — A Foundation Model for Music Production") as demo:
 
         gr.HTML("""
-        <div class="room-hero">
-            <h1>LOLZ</h1>
-            <p>A Foundation Model for Music Production</p>
-        </div>
-
-        <div class="room-intro">
-            ROOM turns a written description into a finished track.
-            Upload a voice reference and the lead vocal will match your timbre.
-            Optional stem separation and MIDI extraction for further production.
-        </div>
+        <div class="room-hero" aria-hidden="true"></div>
         """)
 
         with gr.Column():
