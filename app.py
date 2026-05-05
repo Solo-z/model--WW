@@ -250,16 +250,16 @@ body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background-image: url('/gradio_api/file=assets/room_deck_title.png');
+    background-image: url('/gradio_api/file=assets/room_tree.png');
     background-repeat: no-repeat;
-    background-position: center top;
-    background-size: cover;
+    background-position: center center;
+    background-size: contain;
     background-color: #000;
-    opacity: 0.92;
-    mix-blend-mode: normal;
+    opacity: 0.86;
+    mix-blend-mode: screen;
     z-index: 0;
     pointer-events: none;
-    filter: contrast(1.08) brightness(1.08);
+    filter: contrast(1.08) brightness(1.14);
 }
 body::after {
     content: "";
