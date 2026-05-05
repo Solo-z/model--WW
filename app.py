@@ -763,15 +763,26 @@ def build_ui():
                 if (fill) fill.style.width = '0%';
                 if (pct) pct.textContent = '0%';
                 if (el) el.classList.add('is-loading');
+                window.roomLoadingStartedAt = Date.now();
                 window.roomLoadingTimer = setInterval(() => {
+                    const elapsed = (Date.now() - (window.roomLoadingStartedAt || Date.now())) / 1000;
+                    let target;
+                    if (elapsed < 20) {
+                        target = elapsed * 2.0;              // 0 -> 40 over first 20s
+                    } else if (elapsed < 60) {
+                        target = 40 + (elapsed - 20) * 0.85; // 40 -> 74 over next 40s
+                    } else if (elapsed < 120) {
+                        target = 74 + (elapsed - 60) * 0.30; // 74 -> 92 over next 60s
+                    } else {
+                        target = 92 + Math.min(4, (elapsed - 120) * 0.05); // slow crawl, cap 96
+                    }
                     const current = window.roomLoadingPercent || 0;
-                    if (current >= 99) return;
-                    const step = current < 70 ? 2 : current < 90 ? 1 : 0.25;
-                    window.roomLoadingPercent = Math.min(99, current + step);
+                    // Never pretend we're basically done. 100 only happens when the request returns.
+                    window.roomLoadingPercent = Math.min(96, Math.max(current, target));
                     const shown = Math.floor(window.roomLoadingPercent);
                     if (fill) fill.style.width = shown + '%';
                     if (pct) pct.textContent = shown + '%';
-                }, 850);
+                }, 1000);
                 return [prompt, outputs_select, duration, seed, steps, guidance];
             }
             """,
