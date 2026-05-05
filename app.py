@@ -681,7 +681,7 @@ def build_ui():
 
         gr.HTML("""
         <div class="room-hero">
-            <h1>ROOM</h1>
+            <h1>LOLZ</h1>
             <p>A Foundation Model for Music Production</p>
         </div>
 
