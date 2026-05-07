@@ -670,21 +670,39 @@ input[type="checkbox"] { accent-color: #fff !important; }
 
 /* ── Phone layout: same site, tighter composition ───────────────── */
 @media (max-width: 700px) {
+    html,
+    body {
+        overflow-x: hidden !important;
+        overscroll-behavior-y: none;
+        scroll-behavior: auto !important;
+    }
+
+    body {
+        position: relative;
+    }
+
     body::before {
+        position: absolute;
+        height: 115vh;
         background-position: center top;
         background-size: 132% auto;
         opacity: 0.78;
+        transform: translateZ(0);
     }
 
     body::after {
+        position: absolute;
+        height: 115vh;
         background:
             linear-gradient(to bottom, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.22) 32%, rgba(0,0,0,0.94) 100%),
             radial-gradient(ellipse at center, rgba(0,0,0,0.02) 20%, rgba(0,0,0,0.68) 100%);
+        transform: translateZ(0);
     }
 
     .gradio-container {
         max-width: 100% !important;
         padding: 16px 18px 72px !important;
+        overflow-anchor: none !important;
     }
 
     .room-hero {
@@ -723,6 +741,21 @@ input[type="checkbox"] { accent-color: #fff !important; }
     .room-loading {
         width: min(100%, 340px);
         margin: 20px auto 0 auto;
+    }
+
+    .audio-out,
+    .audio-out > div,
+    .gr-audio {
+        min-height: 132px !important;
+        contain: layout paint !important;
+        overflow: hidden !important;
+        overflow-anchor: none !important;
+    }
+
+    .audio-out audio,
+    .gr-audio audio {
+        display: block !important;
+        width: 100% !important;
     }
 
     .download-all-btn,
