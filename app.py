@@ -931,15 +931,64 @@ def build_ui():
                         console.debug('[ROOM] wake lock unavailable', e);
                     }
                 };
+                window.roomStartNoSleepAudio = async () => {
+                    try {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (!AudioCtx) return;
+                        if (window.roomNoSleepAudioCtx) {
+                            if (window.roomNoSleepAudioCtx.state === 'suspended') {
+                                await window.roomNoSleepAudioCtx.resume();
+                            }
+                            return;
+                        }
+                        const ctx = new AudioCtx();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.value = 440;
+                        // Nearly silent, but still an active media graph on mobile.
+                        gain.gain.value = 0.00001;
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start();
+                        window.roomNoSleepAudioCtx = ctx;
+                        window.roomNoSleepOsc = osc;
+                        window.roomNoSleepGain = gain;
+                    } catch (e) {
+                        console.debug('[ROOM] no-sleep audio unavailable', e);
+                    }
+                };
+                window.roomStopNoSleepAudio = async () => {
+                    try {
+                        if (window.roomNoSleepOsc) {
+                            try { window.roomNoSleepOsc.stop(); } catch (_) {}
+                            window.roomNoSleepOsc.disconnect();
+                        }
+                        if (window.roomNoSleepGain) {
+                            window.roomNoSleepGain.disconnect();
+                        }
+                        if (window.roomNoSleepAudioCtx) {
+                            await window.roomNoSleepAudioCtx.close();
+                        }
+                    } catch (e) {
+                        console.debug('[ROOM] no-sleep audio cleanup skipped', e);
+                    } finally {
+                        window.roomNoSleepAudioCtx = null;
+                        window.roomNoSleepOsc = null;
+                        window.roomNoSleepGain = null;
+                    }
+                };
                 if (!window.roomWakeLockVisibilityHandlerInstalled) {
                     document.addEventListener('visibilitychange', () => {
                         if (window.roomGenerationActive && document.visibilityState === 'visible') {
                             window.roomRequestWakeLock && window.roomRequestWakeLock();
+                            window.roomStartNoSleepAudio && window.roomStartNoSleepAudio();
                         }
                     });
                     window.roomWakeLockVisibilityHandlerInstalled = true;
                 }
                 window.roomRequestWakeLock();
+                window.roomStartNoSleepAudio();
                 const el = document.getElementById('room-loading');
                 const fill = document.getElementById('room-loading-fill');
                 const pct = document.getElementById('room-loading-percent');
@@ -984,6 +1033,9 @@ def build_ui():
                 window.roomGenerationActive = false;
                 if (window.roomReleaseWakeLock) {
                     window.roomReleaseWakeLock();
+                }
+                if (window.roomStopNoSleepAudio) {
+                    window.roomStopNoSleepAudio();
                 }
                 const el = document.getElementById('room-loading');
                 const fill = document.getElementById('room-loading-fill');
