@@ -672,13 +672,25 @@ input[type="checkbox"] { accent-color: #fff !important; }
 @media (max-width: 700px) {
     html,
     body {
+        width: 100% !important;
+        max-width: 100% !important;
         overflow-x: hidden !important;
         overscroll-behavior-y: none;
         scroll-behavior: auto !important;
+        touch-action: pan-y !important;
     }
 
     body {
         position: relative;
+    }
+
+    gradio-app,
+    .gradio-container,
+    .gradio-container *,
+    .block,
+    .form {
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
     }
 
     body::before {
@@ -700,8 +712,10 @@ input[type="checkbox"] { accent-color: #fff !important; }
     }
 
     .gradio-container {
-        max-width: 100% !important;
+        width: 100% !important;
+        max-width: 100vw !important;
         padding: 16px 18px 72px !important;
+        overflow-x: hidden !important;
         overflow-anchor: none !important;
     }
 
@@ -746,16 +760,45 @@ input[type="checkbox"] { accent-color: #fff !important; }
     .audio-out,
     .audio-out > div,
     .gr-audio {
-        min-height: 132px !important;
+        width: min(100%, 340px) !important;
+        max-width: 340px !important;
+        min-width: 0 !important;
+        min-height: 86px !important;
+        max-height: 110px !important;
+        margin: 0 auto !important;
         contain: layout paint !important;
         overflow: hidden !important;
         overflow-anchor: none !important;
+        transform: translateZ(0);
+    }
+
+    .audio-out *,
+    .gr-audio * {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Gradio's custom mobile waveform can be wider than the viewport and cause
+       horizontal panning while audio plays. Keep mobile playback static. */
+    .audio-out canvas,
+    .audio-out svg,
+    .gr-audio canvas,
+    .gr-audio svg,
+    .audio-out [class*="waveform"],
+    .audio-out [class*="Waveform"],
+    .gr-audio [class*="waveform"],
+    .gr-audio [class*="Waveform"] {
+        display: none !important;
     }
 
     .audio-out audio,
     .gr-audio audio {
         display: block !important;
         width: 100% !important;
+        height: 44px !important;
+        max-width: 100% !important;
     }
 
     .download-all-btn,
