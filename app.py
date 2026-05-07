@@ -907,6 +907,39 @@ def build_ui():
             show_progress="hidden",
             js="""
             (prompt, outputs_select, duration, seed, steps, guidance) => {
+                window.roomGenerationActive = true;
+                window.roomReleaseWakeLock = async () => {
+                    try {
+                        if (window.roomWakeLock) {
+                            await window.roomWakeLock.release();
+                            window.roomWakeLock = null;
+                        }
+                    } catch (e) {
+                        console.debug('[ROOM] wake lock release skipped', e);
+                    }
+                };
+                window.roomRequestWakeLock = async () => {
+                    try {
+                        if (!('wakeLock' in navigator)) return;
+                        if (document.visibilityState !== 'visible') return;
+                        await window.roomReleaseWakeLock();
+                        window.roomWakeLock = await navigator.wakeLock.request('screen');
+                        window.roomWakeLock.addEventListener('release', () => {
+                            window.roomWakeLock = null;
+                        });
+                    } catch (e) {
+                        console.debug('[ROOM] wake lock unavailable', e);
+                    }
+                };
+                if (!window.roomWakeLockVisibilityHandlerInstalled) {
+                    document.addEventListener('visibilitychange', () => {
+                        if (window.roomGenerationActive && document.visibilityState === 'visible') {
+                            window.roomRequestWakeLock && window.roomRequestWakeLock();
+                        }
+                    });
+                    window.roomWakeLockVisibilityHandlerInstalled = true;
+                }
+                window.roomRequestWakeLock();
                 const el = document.getElementById('room-loading');
                 const fill = document.getElementById('room-loading-fill');
                 const pct = document.getElementById('room-loading-percent');
@@ -948,6 +981,10 @@ def build_ui():
             show_progress="hidden",
             js="""
             () => {
+                window.roomGenerationActive = false;
+                if (window.roomReleaseWakeLock) {
+                    window.roomReleaseWakeLock();
+                }
                 const el = document.getElementById('room-loading');
                 const fill = document.getElementById('room-loading-fill');
                 const pct = document.getElementById('room-loading-percent');
