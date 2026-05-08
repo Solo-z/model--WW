@@ -694,11 +694,9 @@ input[type="checkbox"] { accent-color: #fff !important; }
         width: min(100%, 340px) !important;
         max-width: 340px !important;
         min-width: 0 !important;
-        min-height: 86px !important;
-        max-height: 118px !important;
+        min-height: 120px !important;
         margin-left: auto !important;
         margin-right: auto !important;
-        contain: layout paint !important;
         overflow: hidden !important;
         overflow-anchor: none !important;
     }
@@ -714,12 +712,11 @@ input[type="checkbox"] { accent-color: #fff !important; }
     .audio-out canvas,
     .audio-out svg,
     .gr-audio canvas,
-    .gr-audio svg,
-    .audio-out [class*="waveform"],
-    .audio-out [class*="Waveform"],
-    .gr-audio [class*="waveform"],
-    .gr-audio [class*="Waveform"] {
-        display: none !important;
+    .gr-audio svg {
+        max-width: 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
     }
 
     .audio-out audio,
