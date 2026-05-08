@@ -757,45 +757,6 @@ input[type="checkbox"] { accent-color: #fff !important; }
         margin: 20px auto 0 auto;
     }
 
-    .audio-out,
-    .audio-out > div,
-    .gr-audio {
-        width: min(100%, 340px) !important;
-        max-width: 340px !important;
-        min-width: 0 !important;
-        min-height: 120px !important;
-        margin: 0 auto !important;
-        overflow: hidden !important;
-        overflow-anchor: none !important;
-        transform: translateZ(0);
-    }
-
-    .audio-out *,
-    .gr-audio * {
-        max-width: 100% !important;
-        min-width: 0 !important;
-        box-sizing: border-box !important;
-        overflow-x: hidden !important;
-    }
-
-    .audio-out canvas,
-    .audio-out svg,
-    .gr-audio canvas,
-    .gr-audio svg {
-        max-width: 100% !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        overflow: hidden !important;
-    }
-
-    .audio-out audio,
-    .gr-audio audio {
-        display: block !important;
-        width: 100% !important;
-        height: 44px !important;
-        max-width: 100% !important;
-    }
-
     .download-all-btn,
     .download-all-btn button {
         width: min(100%, 360px) !important;
