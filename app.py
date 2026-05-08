@@ -763,10 +763,8 @@ input[type="checkbox"] { accent-color: #fff !important; }
         width: min(100%, 340px) !important;
         max-width: 340px !important;
         min-width: 0 !important;
-        min-height: 86px !important;
-        max-height: 110px !important;
+        min-height: 120px !important;
         margin: 0 auto !important;
-        contain: layout paint !important;
         overflow: hidden !important;
         overflow-anchor: none !important;
         transform: translateZ(0);
@@ -780,17 +778,14 @@ input[type="checkbox"] { accent-color: #fff !important; }
         overflow-x: hidden !important;
     }
 
-    /* Gradio's custom mobile waveform can be wider than the viewport and cause
-       horizontal panning while audio plays. Keep mobile playback static. */
     .audio-out canvas,
     .audio-out svg,
     .gr-audio canvas,
-    .gr-audio svg,
-    .audio-out [class*="waveform"],
-    .audio-out [class*="Waveform"],
-    .gr-audio [class*="waveform"],
-    .gr-audio [class*="Waveform"] {
-        display: none !important;
+    .gr-audio svg {
+        max-width: 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
     }
 
     .audio-out audio,
