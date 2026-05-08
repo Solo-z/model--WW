@@ -688,44 +688,6 @@ input[type="checkbox"] { accent-color: #fff !important; }
         box-sizing: border-box !important;
     }
 
-    .audio-out,
-    .audio-out > div,
-    .gr-audio {
-        width: min(100%, 340px) !important;
-        max-width: 340px !important;
-        min-width: 0 !important;
-        min-height: 120px !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        overflow: hidden !important;
-        overflow-anchor: none !important;
-    }
-
-    .audio-out *,
-    .gr-audio * {
-        max-width: 100% !important;
-        min-width: 0 !important;
-        box-sizing: border-box !important;
-        overflow-x: hidden !important;
-    }
-
-    .audio-out canvas,
-    .audio-out svg,
-    .gr-audio canvas,
-    .gr-audio svg {
-        max-width: 100% !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        overflow: hidden !important;
-    }
-
-    .audio-out audio,
-    .gr-audio audio {
-        display: block !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        height: 44px !important;
-    }
 }
 """
 
