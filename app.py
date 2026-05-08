@@ -660,6 +660,76 @@ input[type="checkbox"] { accent-color: #fff !important; }
 
 /* Selection */
 ::selection { background: rgba(255,255,255,0.2); color: #fff; }
+
+/* ── Mobile audio stability patch ────────────────────────────────── */
+@media (max-width: 700px) {
+    html,
+    body,
+    gradio-app {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+        overscroll-behavior-y: none;
+        scroll-behavior: auto !important;
+        touch-action: pan-y !important;
+    }
+
+    .gradio-container {
+        width: 100% !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        overflow-anchor: none !important;
+    }
+
+    .gradio-container *,
+    .block,
+    .form {
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+    }
+
+    .audio-out,
+    .audio-out > div,
+    .gr-audio {
+        width: min(100%, 340px) !important;
+        max-width: 340px !important;
+        min-width: 0 !important;
+        min-height: 86px !important;
+        max-height: 118px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        contain: layout paint !important;
+        overflow: hidden !important;
+        overflow-anchor: none !important;
+    }
+
+    .audio-out *,
+    .gr-audio * {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
+    .audio-out canvas,
+    .audio-out svg,
+    .gr-audio canvas,
+    .gr-audio svg,
+    .audio-out [class*="waveform"],
+    .audio-out [class*="Waveform"],
+    .gr-audio [class*="waveform"],
+    .gr-audio [class*="Waveform"] {
+        display: none !important;
+    }
+
+    .audio-out audio,
+    .gr-audio audio {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 44px !important;
+    }
+}
 """
 
 EXAMPLES = [
