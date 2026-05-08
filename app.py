@@ -18,7 +18,6 @@ import os
 import socket
 import sys
 from pathlib import Path
-from typing import Optional
 
 # ── Silence internal library logs BEFORE any heavy imports ────────────
 # Hides model names, file paths, and progress bars from the runtime log
@@ -156,26 +155,6 @@ def _friendly_error(exc: Exception) -> str:
     return "Generation failed. Try again, or simplify the prompt."
 
 
-def _audio_player_html(audio_path: Optional[str]) -> str:
-    """Render a plain native audio player.
-
-    This avoids Gradio's custom waveform player on mobile, which can cause
-    viewport/layout jitter when playback starts.
-    """
-    if not audio_path:
-        return ""
-    import html
-    from urllib.parse import quote
-
-    normalized = str(audio_path).replace("\\", "/")
-    src = "/gradio_api/file=" + quote(normalized, safe="/:._-")
-    return f"""
-    <div class="room-static-audio">
-        <audio controls preload="metadata" src="{html.escape(src)}"></audio>
-    </div>
-    """
-
-
 def _generate_impl(prompt, outputs_select, duration, seed, steps, guidance):
     """Core generation logic — separated so ZeroGPU decorator can wrap it."""
     import traceback
@@ -237,7 +216,7 @@ def _generate_impl(prompt, outputs_select, duration, seed, steps, guidance):
         # Show "Download All" button only if there are files to download
         has_files = bool(all_files) or bool(audio_out)
         download_all_update = gr.update(visible=has_files)
-        return _audio_player_html(audio_out), all_files if all_files else None, download_all_update, info
+        return audio_out, all_files if all_files else None, download_all_update, info
     except gr.Error:
         raise
     except Exception as e:
@@ -509,21 +488,9 @@ div[role="progressbar"] {
 }
 
 /* ── Output panels ───────────────────────────────────────────────── */
-.audio-out {
-    width: 100%;
-    max-width: 620px;
-    margin: 0 auto;
-}
-.room-static-audio {
-    width: 100%;
-    margin: 16px auto 0 auto;
-    overflow: hidden;
-    contain: layout paint;
-}
-.room-static-audio audio,
 .audio-out audio {
     width: 100% !important;
-    display: block !important;
+    margin-top: 16px;
     filter: grayscale(100%) invert(0%);
 }
 
@@ -889,7 +856,8 @@ def build_ui():
             </div>
             """)
 
-            audio_out = gr.HTML("", elem_classes=["audio-out"])
+            audio_out = gr.Audio(label="", type="filepath", show_label=False,
+                                 elem_classes=["audio-out"])
 
             download_all = gr.Button(
                 "⬇  Download All",
