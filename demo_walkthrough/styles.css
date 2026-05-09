@@ -301,6 +301,132 @@ input[type="checkbox"] {
   font-size: 0.72rem;
 }
 
+.plugin-host {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  min-height: 360px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.035), transparent 40%),
+    #101010;
+}
+
+.device-chain {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 18px;
+  border-right: 1px solid rgba(255,255,255,0.12);
+  background: #181818;
+}
+
+.device {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.62);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.device.active {
+  color: #000;
+  background: #b6ff4a;
+  border-color: #b6ff4a;
+}
+
+.plugin-window {
+  align-self: center;
+  justify-self: center;
+  width: min(720px, calc(100% - 44px));
+  border: 1px solid rgba(255,255,255,0.22);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.12), transparent 42%),
+    #050505;
+  box-shadow: 0 30px 90px rgba(0,0,0,0.78);
+}
+
+.plugin-titlebar {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.16);
+  color: rgba(255,255,255,0.72);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.plugin-body {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 22px;
+  padding: 26px;
+}
+
+.plugin-copy h3 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.plugin-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  align-content: center;
+}
+
+.plugin-controls div {
+  min-height: 94px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.045);
+}
+
+.plugin-controls span {
+  color: rgba(255,255,255,0.48);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.66rem;
+}
+
+.plugin-controls strong {
+  font-size: 2rem;
+}
+
+.plugin-slots {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  padding: 0 26px 26px;
+}
+
+.plugin-slot {
+  min-height: 74px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.62);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+}
+
+.plugin-slot.active {
+  border-color: #fff;
+  color: #fff;
+  background: rgba(255,255,255,0.16);
+}
+
 .tracks {
   display: grid;
 }
@@ -354,8 +480,26 @@ input[type="checkbox"] {
   }
 
   .ableton-topbar,
-  .daw-track {
+  .daw-track,
+  .plugin-host,
+  .plugin-body {
     grid-template-columns: 1fr;
+  }
+
+  .device-chain {
+    grid-template-columns: repeat(3, 1fr);
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .plugin-window {
+    width: calc(100% - 24px);
+    margin: 12px;
+  }
+
+  .plugin-slots,
+  .plugin-controls {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .timeline {

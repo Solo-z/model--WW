@@ -61,6 +61,14 @@ function renderTracks() {
 }
 
 function renderAbleton() {
+  $("plugin-direction").textContent = String(selectedTrack).padStart(2, "0");
+  $("plugin-prompt").textContent = $("prompt").value.split(",").slice(0, 3).join(",");
+  $("plugin-slots").innerHTML = tracks.map((track) => `
+    <div class="plugin-slot ${track.id === selectedTrack ? "active" : ""}">
+      ${String(track.id).padStart(2, "0")}
+    </div>
+  `).join("");
+
   $("ableton-tracks").innerHTML = dawTracks.map((name, idx) => `
     <div class="daw-track">
       <div class="track-label">${name}</div>

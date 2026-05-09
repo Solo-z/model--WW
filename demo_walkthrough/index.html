@@ -15,11 +15,12 @@
         </div>
 
         <div class="stage-card">
-          <div class="step-pill" id="step-pill">Step 1 / 4 · Prompt</div>
-          <h1>A foundation model for music production.</h1>
+          <div class="step-pill" id="step-pill">Step 1 / 4 · Open Plugin</div>
+          <h1>ROOM running inside the DAW.</h1>
           <p>
-            This is a simulated demo. It shows the exact product flow without
-            using GPU time or requiring a signed desktop app.
+            This is a simulated plugin walkthrough. It shows how ROOM will feel
+            inside Ableton: prompt, generate directions, then commit stems and
+            MIDI into the session.
           </p>
 
           <label class="prompt-label" for="prompt">Prompt</label>
@@ -31,12 +32,12 @@
             <label><input type="checkbox" checked /> Ableton export</label>
           </div>
 
-          <button class="primary" id="generate">Generate 6 Directions</button>
+          <button class="primary" id="generate">Open ROOM Plugin</button>
         </div>
 
         <div class="loader" id="loader" hidden>
           <div class="loader-top">
-            <span>Generating six directions</span>
+          <span>Opening plugin and generating directions</span>
             <span id="loader-percent">0%</span>
           </div>
           <div class="bar"><div id="loader-fill"></div></div>
@@ -45,24 +46,24 @@
 
       <section class="results" id="results" hidden>
         <div class="section-head">
-          <span class="step-pill">Step 2 / 4 · Pick a direction</span>
-          <h2>Six generated tracks.</h2>
-          <p>Play them, pick the strongest direction, then export stems/MIDI to Ableton.</p>
+          <span class="step-pill">Step 2 / 4 · Plugin Outputs</span>
+          <h2>Six directions inside ROOM.</h2>
+          <p>Pick the strongest direction in the plugin, then commit it to the Ableton session.</p>
         </div>
 
         <div class="track-grid" id="track-grid"></div>
 
         <div class="result-actions">
-          <button class="secondary" id="download-all">Download All Files</button>
-          <button class="primary" id="send-ableton">Send Selected to Ableton</button>
+          <button class="secondary" id="download-all">Export Files</button>
+          <button class="primary" id="send-ableton">Commit Selected to Ableton</button>
         </div>
       </section>
 
       <section class="ableton" id="ableton" hidden>
         <div class="section-head">
-          <span class="step-pill">Step 3 / 4 · DAW handoff</span>
-          <h2>Ableton session preview.</h2>
-          <p>ROOM exports the selected direction as mix, stems, and MIDI tracks.</p>
+          <span class="step-pill">Step 3 / 4 · Ableton Plugin</span>
+          <h2>ROOM as an Ableton device.</h2>
+          <p>The plugin lives on a track, generates directions, then writes stems and MIDI into the arrangement.</p>
         </div>
 
         <div class="ableton-window">
@@ -75,6 +76,34 @@
             </div>
           </div>
 
+          <div class="plugin-host">
+            <div class="device-chain">
+              <div class="device active">ROOM</div>
+              <div class="device">EQ Eight</div>
+              <div class="device">Glue Comp</div>
+            </div>
+
+            <div class="plugin-window">
+              <div class="plugin-titlebar">
+                <span>ROOM · VST3/AU/CLAP</span>
+                <span>Direction <strong id="plugin-direction">01</strong></span>
+              </div>
+              <div class="plugin-body">
+                <div class="plugin-copy">
+                  <p class="eyebrow">Prompt inside Ableton</p>
+                  <h3 id="plugin-prompt">dark aggressive trap, D minor, 140 BPM</h3>
+                  <p>Generate six directions, audition inside the plugin, then commit selected stems and MIDI to the timeline.</p>
+                </div>
+                <div class="plugin-controls">
+                  <div><span>Energy</span><strong>87</strong></div>
+                  <div><span>Groove</span><strong>71</strong></div>
+                  <div><span>Humanize</span><strong>64</strong></div>
+                </div>
+              </div>
+              <div class="plugin-slots" id="plugin-slots"></div>
+            </div>
+          </div>
+
           <div class="timeline">
             <span>1</span><span>9</span><span>17</span><span>25</span><span>33</span>
           </div>
@@ -83,17 +112,17 @@
         </div>
 
         <div class="result-actions">
-          <button class="secondary" id="back-results">Back to tracks</button>
+          <button class="secondary" id="back-results">Back to Plugin Outputs</button>
           <button class="primary" id="finish-demo">Finish walkthrough</button>
         </div>
       </section>
 
       <section class="final" id="final" hidden>
         <span class="step-pill">Step 4 / 4 · Demo complete</span>
-        <h2>ROOM is the bridge from prompt to production session.</h2>
+        <h2>ROOM is the plugin layer between prompt and production session.</h2>
         <p>
-          Browser generation today. Desktop + DAW connector next. Full music
-          foundation model with compute.
+          The real product direction: VST/AU/CLAP plugin inside the DAW,
+          powered by the hosted model today and ROOM’s own model over time.
         </p>
         <button class="primary" id="restart">Restart demo</button>
       </section>
