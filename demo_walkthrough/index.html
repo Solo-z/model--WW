@@ -7,125 +7,85 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <section class="hero" id="room-view">
-        <div class="brand">
-          <span class="mark">ROOM</span>
-          <span class="sub">Product Walkthrough</span>
+    <main class="daw-app">
+      <header class="live-header">
+        <div class="live-logo">Live</div>
+        <div class="transport">
+          <button id="play-session">▶</button>
+          <button>●</button>
+          <span>140.00 BPM</span>
+          <span>4/4</span>
+          <span>D minor</span>
         </div>
+        <div class="status">Arrangement View · ROOM Demo Set</div>
+      </header>
 
-        <div class="stage-card">
-          <div class="step-pill" id="step-pill">Step 1 / 4 · Open Plugin</div>
-          <h1>ROOM running inside the DAW.</h1>
-          <p>
-            This is a simulated plugin walkthrough. It shows how ROOM will feel
-            inside Ableton: prompt, generate directions, then commit stems and
-            MIDI into the session.
-          </p>
+      <section class="daw-workspace">
+        <aside class="browser">
+          <div class="browser-title">Browser</div>
+          <div class="browser-item active">Plug-Ins</div>
+          <div class="browser-item">Audio Effects</div>
+          <div class="browser-item">MIDI Effects</div>
+          <div class="browser-item">Instruments</div>
+          <div class="browser-item">Samples</div>
+          <div class="plugin-entry">ROOM.vst3</div>
+        </aside>
 
-          <label class="prompt-label" for="prompt">Prompt</label>
-          <textarea id="prompt">dark aggressive trap, D minor, 140 BPM, heavy 808 bass, rolling hi-hats</textarea>
-
-          <div class="options">
-            <label><input type="checkbox" checked /> Stems</label>
-            <label><input type="checkbox" checked /> MIDI</label>
-            <label><input type="checkbox" checked /> Ableton export</label>
-          </div>
-
-          <button class="primary" id="generate">Open ROOM Plugin</button>
-        </div>
-
-        <div class="loader" id="loader" hidden>
-          <div class="loader-top">
-          <span>Opening plugin and generating directions</span>
-            <span id="loader-percent">0%</span>
-          </div>
-          <div class="bar"><div id="loader-fill"></div></div>
-        </div>
-      </section>
-
-      <section class="results" id="results" hidden>
-        <div class="section-head">
-          <span class="step-pill">Step 2 / 4 · Plugin Outputs</span>
-          <h2>Six directions inside ROOM.</h2>
-          <p>Pick the strongest direction in the plugin, then commit it to the Ableton session.</p>
-        </div>
-
-        <div class="track-grid" id="track-grid"></div>
-
-        <div class="result-actions">
-          <button class="secondary" id="download-all">Export Files</button>
-          <button class="primary" id="send-ableton">Commit Selected to Ableton</button>
-        </div>
-      </section>
-
-      <section class="ableton" id="ableton" hidden>
-        <div class="section-head">
-          <span class="step-pill">Step 3 / 4 · Ableton Plugin</span>
-          <h2>ROOM as an Ableton device.</h2>
-          <p>The plugin lives on a track, generates directions, then writes stems and MIDI into the arrangement.</p>
-        </div>
-
-        <div class="ableton-window">
-          <div class="ableton-topbar">
-            <span>Ableton Live · ROOM Session</span>
-            <div class="transport">
-              <button id="play-session">▶</button>
-              <span>140 BPM</span>
-              <span>D minor</span>
-            </div>
-          </div>
-
-          <div class="plugin-host">
-            <div class="device-chain">
-              <div class="device active">ROOM</div>
-              <div class="device">EQ Eight</div>
-              <div class="device">Glue Comp</div>
-            </div>
-
-            <div class="plugin-window">
-              <div class="plugin-titlebar">
-                <span>ROOM · VST3/AU/CLAP</span>
-                <span>Direction <strong id="plugin-direction">01</strong></span>
-              </div>
-              <div class="plugin-body">
-                <div class="plugin-copy">
-                  <p class="eyebrow">Prompt inside Ableton</p>
-                  <h3 id="plugin-prompt">dark aggressive trap, D minor, 140 BPM</h3>
-                  <p>Generate six directions, audition inside the plugin, then commit selected stems and MIDI to the timeline.</p>
-                </div>
-                <div class="plugin-controls">
-                  <div><span>Energy</span><strong>87</strong></div>
-                  <div><span>Groove</span><strong>71</strong></div>
-                  <div><span>Humanize</span><strong>64</strong></div>
-                </div>
-              </div>
-              <div class="plugin-slots" id="plugin-slots"></div>
-            </div>
-          </div>
-
+        <section class="arrangement">
           <div class="timeline">
-            <span>1</span><span>9</span><span>17</span><span>25</span><span>33</span>
+            <span>1</span><span>9</span><span>17</span><span>25</span><span>33</span><span>41</span>
           </div>
-
           <div class="tracks" id="ableton-tracks"></div>
-        </div>
 
-        <div class="result-actions">
-          <button class="secondary" id="back-results">Back to Plugin Outputs</button>
-          <button class="primary" id="finish-demo">Finish walkthrough</button>
+          <div class="room-plugin">
+            <div class="plugin-titlebar">
+              <span>ROOM · VST3/AU/CLAP</span>
+              <span>Direction <strong id="plugin-direction">01</strong></span>
+            </div>
+
+            <div class="plugin-main">
+              <div class="plugin-left">
+                <div class="room-word">ROOM</div>
+                <p class="plugin-sub">A foundation model for music production</p>
+                <textarea id="prompt">dark aggressive trap, D minor, 140 BPM, heavy 808 bass, rolling hi-hats</textarea>
+                <div class="plugin-options">
+                  <label><input type="checkbox" checked /> Stems</label>
+                  <label><input type="checkbox" checked /> MIDI</label>
+                  <label><input type="checkbox" checked /> Commit to timeline</label>
+                </div>
+              </div>
+
+              <div class="plugin-right">
+                <div class="macro"><span>Energy</span><strong>87</strong></div>
+                <div class="macro"><span>Groove</span><strong>71</strong></div>
+                <div class="macro"><span>Humanize</span><strong>64</strong></div>
+              </div>
+            </div>
+
+            <div class="plugin-actions">
+              <button class="primary" id="generate">Generate 6 Directions</button>
+              <button class="secondary" id="commit" disabled>Commit Selected</button>
+            </div>
+
+            <div class="loader" id="loader" hidden>
+              <div class="loader-top">
+                <span>Generating inside plugin</span>
+                <span id="loader-percent">0%</span>
+              </div>
+              <div class="bar"><div id="loader-fill"></div></div>
+            </div>
+
+            <div class="directions" id="track-grid"></div>
+          </div>
         </div>
       </section>
 
-      <section class="final" id="final" hidden>
-        <span class="step-pill">Step 4 / 4 · Demo complete</span>
-        <h2>ROOM is the plugin layer between prompt and production session.</h2>
-        <p>
-          The real product direction: VST/AU/CLAP plugin inside the DAW,
-          powered by the hosted model today and ROOM’s own model over time.
-        </p>
-        <button class="primary" id="restart">Restart demo</button>
-      </section>
+      <footer class="device-strip">
+        <div class="device active">ROOM</div>
+        <div class="device">EQ Eight</div>
+        <div class="device">Glue Comp</div>
+        <button class="secondary" id="download-all">Export Files</button>
+      </footer>
     </main>
 
     <script src="./app.js"></script>
