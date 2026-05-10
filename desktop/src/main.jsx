@@ -26,6 +26,13 @@ function fileSummary(files) {
 
 function App() {
   const [prompt, setPrompt] = useState(examples[0]);
+  const [messages, setMessages] = useState([
+    {
+      role: "room",
+      title: "ROOM ready",
+      body: "Describe the track you want. I will generate audio, stems, and MIDI, then save everything locally.",
+    },
+  ]);
   const [stems, setStems] = useState(true);
   const [midi, setMidi] = useState(true);
   const [duration, setDuration] = useState(30);
@@ -53,6 +60,11 @@ function App() {
     setBusy(true);
     setError("");
     setGeneration(null);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", title: "You", body: prompt },
+      { role: "room", title: "ROOM", body: "Generating a production-ready direction..." },
+    ]);
     try {
       const result = await window.room.generate({
         prompt,
@@ -64,11 +76,25 @@ function App() {
         seed,
       });
       setGeneration(result);
+      setMessages((prev) => [
+        ...prev.slice(0, -1),
+        {
+          role: "room",
+          title: "ROOM",
+          body: `Generated ${fileSummary(result.files) || "audio"}. Files saved locally.`,
+          generation: result,
+        },
+      ]);
       if (settings.autoOpenFolder) {
         await window.room.revealGeneration(result.id);
       }
     } catch (err) {
-      setError(err?.message || "Generation failed.");
+      const message = err?.message || "Generation failed.";
+      setError(message);
+      setMessages((prev) => [
+        ...prev.slice(0, -1),
+        { role: "room", title: "ROOM error", body: message, error: true },
+      ]);
     } finally {
       setBusy(false);
     }
@@ -106,54 +132,114 @@ function App() {
   }
 
   return (
-    <main className="app">
-      <section className="hero">
-        <h1>ROOM</h1>
-        <p>A Foundation Model for Music Production</p>
-      </section>
-
-      <section className="panel">
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="describe the track — genre, key, BPM, mood, instruments…"
-        />
-
-        <div className="toggles">
-          <label><input type="checkbox" checked={stems} onChange={(e) => setStems(e.target.checked)} /> Stems</label>
-          <label><input type="checkbox" checked={midi} onChange={(e) => setMidi(e.target.checked)} /> MIDI</label>
+    <main className="workspace">
+      <aside className="sidebar">
+        <div className="brand">
+          <span className="logo">ROOM</span>
+          <span>Music workspace</span>
         </div>
 
-        <button className="generate" disabled={busy} onClick={generate}>
-          {busy ? "Generating" : "⏵ Generate"}
+        <button type="button" className="new-chat" onClick={() => setMessages([{ role: "room", title: "ROOM ready", body: "New session. Describe the track." }])}>
+          New session
         </button>
 
-        {(busy || progress.stage !== "idle") && (
-          <div className="progress">
-            <div className="progress-top">
-              <span>{progress.detail || progress.stage}</span>
-              <span>{Math.round(progress.pct || 0)}%</span>
-            </div>
-            <div className="bar"><div style={{ width: `${progress.pct || 0}%` }} /></div>
-          </div>
-        )}
+        <div className="side-section">
+          <div className="side-label">Today</div>
+          {examples.slice(0, 4).map((ex, index) => (
+            <button type="button" className="session" key={ex} onClick={() => setPrompt(ex)}>
+              <span>{`0${index + 1}`}</span>
+              <p>{ex}</p>
+            </button>
+          ))}
+        </div>
 
-        {generation?.audioPath && (
-          <div className="result">
-            <audio src={`file://${generation.audioPath}`} controls />
-            <div className="result-actions">
-              <button onClick={() => window.room.revealGeneration(generation.id)}>Open Folder</button>
-              <button onClick={sendToReaper}>Send to REAPER</button>
-            </div>
-            <p>{generatedSummary || generation.info || "Ready"}</p>
-          </div>
-        )}
+        <div className="side-footer">
+          <span>Backend</span>
+          <strong>HuggingFace Space</strong>
+        </div>
+      </aside>
 
-        {error && <div className="error">{error}</div>}
+      <section className="chat">
+        <header className="topbar">
+          <div>
+            <span className="crumb">ROOM / Generate</span>
+            <h1>Prompt to production session</h1>
+          </div>
+          <span className={`status-dot ${busy ? "busy" : ""}`}>{busy ? "Generating" : "Ready"}</span>
+        </header>
+
+        <div className="thread">
+          {messages.map((message, index) => (
+            <article className={`message ${message.role} ${message.error ? "error-msg" : ""}`} key={`${message.title}-${index}`}>
+              <div className="avatar">{message.role === "user" ? "YOU" : "RM"}</div>
+              <div className="bubble">
+                <div className="message-title">{message.title}</div>
+                <p>{message.body}</p>
+                {message.generation?.audioPath && (
+                  <div className="inline-result">
+                    <audio src={`file://${message.generation.audioPath}`} controls>
+                      <track kind="captions" />
+                    </audio>
+                    <div className="result-actions">
+                      <button type="button" onClick={() => window.room.revealGeneration(message.generation.id)}>Open folder</button>
+                      <button type="button" onClick={sendToReaper}>Send to REAPER</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <section className="composer">
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Ask ROOM for a track..."
+          />
+          <div className="composer-row">
+            <label><input type="checkbox" checked={stems} onChange={(e) => setStems(e.target.checked)} /> Stems</label>
+            <label><input type="checkbox" checked={midi} onChange={(e) => setMidi(e.target.checked)} /> MIDI</label>
+            <button type="button" className="generate" disabled={busy} onClick={generate}>
+              {busy ? "Generating" : "Generate"}
+            </button>
+          </div>
+        </section>
       </section>
 
-      <section className="settings">
-        <details>
+      <aside className="rightbar">
+        <div className="panel-card">
+          <h2>Current output</h2>
+          {generation?.audioPath ? (
+            <>
+              <audio src={`file://${generation.audioPath}`} controls>
+                <track kind="captions" />
+              </audio>
+              <p>{generatedSummary || generation.info || "Ready"}</p>
+              <div className="result-actions vertical">
+                <button type="button" onClick={() => window.room.revealGeneration(generation.id)}>Open output folder</button>
+                <button type="button" onClick={sendToReaper}>Send to REAPER</button>
+              </div>
+            </>
+          ) : (
+            <p>No generation yet.</p>
+          )}
+        </div>
+
+        {(busy || progress.stage !== "idle") && (
+          <div className="panel-card">
+            <h2>Status</h2>
+            <div className="progress">
+              <div className="progress-top">
+                <span>{progress.detail || progress.stage}</span>
+                <span>{Math.round(progress.pct || 0)}%</span>
+              </div>
+              <div className="bar"><div style={{ width: `${progress.pct || 0}%` }} /></div>
+            </div>
+          </div>
+        )}
+
+        <details className="panel-card" open>
           <summary>Advanced</summary>
           <div className="grid">
             <label>Duration <input type="number" min="10" max="300" value={duration} onChange={(e) => setDuration(Number(e.target.value))} /></label>
@@ -165,22 +251,17 @@ function App() {
             REAPER command folder
             <input value={settings.reaperDir || ""} onChange={(e) => saveSettings({ reaperDir: e.target.value })} />
           </label>
-          <button className="secondary-action" onClick={installReaperScript}>
+          <button type="button" className="secondary-action" onClick={installReaperScript}>
             Install REAPER Script
           </button>
           <label className="check">
             <input type="checkbox" checked={settings.autoOpenFolder} onChange={(e) => saveSettings({ autoOpenFolder: e.target.checked })} />
-            Open output folder after generation
+            Open folder after generation
           </label>
         </details>
 
-        <details>
-          <summary>Examples</summary>
-          <div className="examples">
-            {examples.map((ex) => <button key={ex} onClick={() => setPrompt(ex)}>{ex}</button>)}
-          </div>
-        </details>
-      </section>
+        {error && <div className="error">{error}</div>}
+      </aside>
     </main>
   );
 }

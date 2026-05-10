@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
-const path = require("path");
-const fs = require("fs");
-const os = require("os");
+const path = require("node:path");
+const fs = require("node:fs");
+const os = require("node:os");
 const { Client } = require("@gradio/client");
 
 const SPACE_URL = "https://solo363614-room-v2.hf.space";
@@ -10,6 +10,20 @@ const DEV_URL = "http://127.0.0.1:5173";
 let mainWindow;
 let gradioClientPromise;
 const generationIndex = new Map();
+
+function readableError(error) {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  if (error.message) return error.message;
+  if (error.title || error.stage) {
+    return [error.title, error.stage, error.message].filter(Boolean).join(": ");
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
 
 function userDataPath(...parts) {
   return path.join(app.getPath("userData"), ...parts);
@@ -28,7 +42,12 @@ function defaultReaperDir() {
 }
 
 function safeName(name) {
-  return String(name || "room_file").replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 180);
+  return String(name || "room_file")
+    .split("")
+    .map((char) => (char.charCodeAt(0) < 32 ? "_" : char))
+    .join("")
+    .replace(/[<>:"/\\|?*]/g, "_")
+    .slice(0, 180);
 }
 
 function emitProgress(stage, pct, detail = "") {
@@ -164,7 +183,7 @@ ipcMain.handle("room:send-to-reaper", async (_event, generationId) => {
     return { ok: false, error: "No WAV files to send to REAPER" };
   }
 
-  fs.writeFileSync(commandFile, commands.join("\n") + "\n", "utf8");
+  fs.writeFileSync(commandFile, `${commands.join("\n")}\n`, "utf8");
   return { ok: true, commandFile, count: commands.length };
 });
 
@@ -185,66 +204,70 @@ ipcMain.handle("room:install-reaper-script", async () => {
 });
 
 ipcMain.handle("room:generate", async (_event, payload) => {
-  const prompt = String(payload.prompt || "").trim();
-  if (!prompt) throw new Error("Write a prompt first.");
+  try {
+    const prompt = String(payload.prompt || "").trim();
+    if (!prompt) throw new Error("Write a prompt first.");
 
-  const outputs = [];
-  if (payload.stems) outputs.push("Stems");
-  if (payload.midi) outputs.push("MIDI");
+    const outputs = [];
+    if (payload.stems) outputs.push("Stems");
+    if (payload.midi) outputs.push("MIDI");
 
-  emitProgress("connecting", 5, "Connecting to ROOM");
-  const client = await getClient();
+    emitProgress("connecting", 5, "Connecting to ROOM");
+    const client = await getClient();
 
-  emitProgress("generating", 15, "Generating track");
-  const result = await client.predict("/_generate_impl", {
-    prompt,
-    outputs_select: outputs,
-    duration: Number(payload.duration || 30),
-    seed: Number.isFinite(Number(payload.seed)) ? Number(payload.seed) : -1,
-    steps: Number(payload.steps || 8),
-    guidance: Number(payload.guidance || 7),
-  });
+    emitProgress("generating", 15, "Generating track");
+    const result = await client.predict("/_generate_impl", {
+      prompt,
+      outputs_select: outputs,
+      duration: Number(payload.duration || 30),
+      seed: Number.isFinite(Number(payload.seed)) ? Number(payload.seed) : -1,
+      steps: Number(payload.steps || 8),
+      guidance: Number(payload.guidance || 7),
+    });
 
-  emitProgress("downloading", 82, "Saving files");
-  const data = result.data || [];
-  const audio = data[0] || null;
-  const fileList = Array.isArray(data[1]) ? data[1] : [];
-  const info = data[3] || "";
+    emitProgress("downloading", 82, "Saving files");
+    const data = result.data || [];
+    const audio = data[0] || null;
+    const fileList = Array.isArray(data[1]) ? data[1] : [];
+    const info = data[3] || "";
 
-  const generationId = `room_${new Date().toISOString().replace(/[:.]/g, "-")}`;
-  const outDir = path.join(generationsRoot(), generationId);
-  fs.mkdirSync(outDir, { recursive: true });
+    const generationId = `room_${new Date().toISOString().replace(/[:.]/g, "-")}`;
+    const outDir = path.join(generationsRoot(), generationId);
+    fs.mkdirSync(outDir, { recursive: true });
 
-  const savedFiles = [];
-  const audioPath = await downloadFile(audio, outDir, "room_mix.wav");
-  if (audioPath) savedFiles.push(audioPath);
+    const savedFiles = [];
+    const audioPath = await downloadFile(audio, outDir, "room_mix.wav");
+    if (audioPath) savedFiles.push(audioPath);
 
-  for (let i = 0; i < fileList.length; i += 1) {
-    const saved = await downloadFile(fileList[i], outDir, `room_file_${i}`);
-    if (saved) savedFiles.push(saved);
+    for (let i = 0; i < fileList.length; i += 1) {
+      const saved = await downloadFile(fileList[i], outDir, `room_file_${i}`);
+      if (saved) savedFiles.push(saved);
+    }
+
+    const manifest = {
+      id: generationId,
+      prompt,
+      createdAt: new Date().toISOString(),
+      info,
+      files: savedFiles,
+    };
+    fs.writeFileSync(path.join(outDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+    generationIndex.set(generationId, { id: generationId, dir: outDir, files: savedFiles, info });
+
+    emitProgress("ready", 100, "Ready");
+    return {
+      ok: true,
+      id: generationId,
+      dir: outDir,
+      info,
+      audioPath,
+      files: savedFiles.map((filePath) => ({
+        path: filePath,
+        name: path.basename(filePath),
+        kind: fileKind(filePath),
+      })),
+    };
+  } catch (error) {
+    throw new Error(readableError(error));
   }
-
-  const manifest = {
-    id: generationId,
-    prompt,
-    createdAt: new Date().toISOString(),
-    info,
-    files: savedFiles,
-  };
-  fs.writeFileSync(path.join(outDir, "manifest.json"), JSON.stringify(manifest, null, 2));
-  generationIndex.set(generationId, { id: generationId, dir: outDir, files: savedFiles, info });
-
-  emitProgress("ready", 100, "Ready");
-  return {
-    ok: true,
-    id: generationId,
-    dir: outDir,
-    info,
-    audioPath,
-    files: savedFiles.map((filePath) => ({
-      path: filePath,
-      name: path.basename(filePath),
-      kind: fileKind(filePath),
-    })),
-  };
 });
