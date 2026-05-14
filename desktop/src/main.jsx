@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-import roomLogoUrl from "../assets/room_logo.png";
+
+/** Official ROOM bear (PNG in repo — rail + sidebar). */
+import bearLogoUrl from "../assets/room_logo_bear.png";
 
 /** Activity rail icon */
 function IconChat() {
@@ -465,7 +467,7 @@ function App() {
     <main className="workspace chat-only">
       <nav className="activity-rail" aria-label="ROOM sections">
         <div className="rail-logo" title="ROOM">
-          <img src={roomLogoUrl} alt="" />
+          <img src={bearLogoUrl} alt="ROOM" className="bear-logo-img" />
         </div>
         <button type="button" className="rail-item active" title="Agent workspace" aria-current="page">
           <IconChat />
@@ -475,7 +477,11 @@ function App() {
 
       <aside className="sidebar">
         <div className="brand">
-          <img src={roomLogoUrl} alt="ROOM" />
+          <img src={bearLogoUrl} alt="ROOM" className="bear-logo-img" />
+          <div>
+            <span className="logo">ROOM</span>
+            <span>Music agent</span>
+          </div>
         </div>
 
         <button
@@ -531,7 +537,9 @@ function App() {
 
           {messages.map((message, index) => (
             <article className={`message ${message.role} ${message.error ? "error-msg" : ""}`} key={`${message.title}-${index}`}>
-              <div className="avatar">{message.role === "user" ? "YOU" : "RM"}</div>
+              <div className={`avatar ${message.role === "room" ? "avatar-bear" : ""}`}>
+                {message.role === "user" ? "YOU" : <img src={bearLogoUrl} alt="ROOM" className="bear-logo-img bear-logo-img--chat" />}
+              </div>
               <div className="bubble">
                 <div className="message-title">{message.title}</div>
                 <p>{message.body}</p>

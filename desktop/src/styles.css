@@ -98,17 +98,26 @@ body::before {
 }
 
 .rail-logo {
-  overflow: hidden;
-  background: #050505;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  overflow: visible;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
-.rail-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
+/* Shared bear mark: knocks out flat black in the PNG so it matches the panel behind (same as far-left rail). */
+.bear-logo-img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+  border-radius: 0;
+  mix-blend-mode: lighten;
+}
+
+.bear-logo-img--chat {
+  width: 28px;
+  height: 28px;
 }
 
 .rail-item {
@@ -173,18 +182,28 @@ body::before {
 }
 
 .brand {
-  display: block;
-  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #858585;
+  font-size: 0.68rem;
 }
 
-.brand img {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 56px;
-  object-fit: contain;
-  object-position: left center;
-  border-radius: 8px;
+.brand > div {
+  display: grid;
+  gap: 1px;
+}
+
+.brand > div > span:last-child {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.logo {
+  color: #e8e8e8;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .new-chat,
@@ -559,7 +578,6 @@ h2 {
   display: grid;
   grid-template-columns: 28px minmax(0, 760px);
   gap: 10px;
-  animation: messageIn var(--enter-slow) var(--ease-soft) both;
 }
 
 .message.user {
@@ -579,6 +597,13 @@ h2 {
   letter-spacing: 0.1em;
 }
 
+.avatar.avatar-bear {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
 .bubble {
   border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 14px;
@@ -588,6 +613,7 @@ h2 {
   padding: 12px 14px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
   transition: border-color 320ms var(--ease-standard), background 320ms var(--ease-standard), transform 320ms var(--ease-standard);
+  animation: messageIn var(--enter-slow) var(--ease-soft) both;
 }
 
 .message.user .bubble {
