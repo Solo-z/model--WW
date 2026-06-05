@@ -69,6 +69,14 @@ a {
   gap: 24px;
 }
 
+.nav-solid {
+  background: rgba(0,0,0,0.82);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  mix-blend-mode: normal;
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
 .glyph {
   opacity: 0.55;
 }
@@ -135,6 +143,7 @@ main {
 .secondary {
   border: 1px solid rgba(255,255,255,0.36);
   background: rgba(0,0,0,0.42);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
 
@@ -192,10 +201,33 @@ h2 {
 
 .side-copy p:not(.eyebrow),
 .download-copy p,
-.daw p {
+.daw p,
+.company p,
+.legal-page p {
   color: rgba(255,255,255,0.68);
   font-size: 1rem;
   line-height: 1.7;
+}
+
+.small-note {
+  margin-top: 18px;
+  color: rgba(255,255,255,0.46) !important;
+  font-size: 0.9rem !important;
+}
+
+.company-address {
+  margin-top: 24px;
+  color: rgba(255,255,255,0.62);
+  font-size: 0.92rem;
+  font-style: normal;
+  line-height: 1.7;
+}
+
+.company-address a,
+.legal-body a {
+  color: #fff;
+  text-decoration-color: rgba(255,255,255,0.36);
+  text-underline-offset: 4px;
 }
 
 .download {
@@ -226,27 +258,88 @@ h2 {
   font-size: clamp(3.8rem, 11vw, 10rem);
 }
 
-.daw {
+.daw,
+.company {
   max-width: 1180px;
   margin: 0 auto;
   padding: 96px 32px 120px;
 }
 
-.daw > h2 {
+.daw > h2,
+.company-copy {
   max-width: 760px;
 }
 
-.daw-grid {
+.daw-grid,
+.company-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 18px;
   margin-top: 44px;
 }
 
+.company {
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.legal-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.legal-links a {
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.18em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.legal-page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 150px 32px 96px;
+}
+
+.legal-hero {
+  padding-bottom: 44px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.legal-hero h1 {
+  margin: 0;
+  font-size: clamp(3.2rem, 9vw, 7rem);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+}
+
+.legal-hero p {
+  max-width: 760px;
+}
+
+.legal-body {
+  display: grid;
+  gap: 18px;
+  padding-top: 32px;
+}
+
+.legal-body article {
+  min-height: 0;
+}
+
+.legal-body h2 {
+  margin: 0 0 14px;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
 article {
   min-height: 230px;
   border: 1px solid rgba(255,255,255,0.15);
   background: rgba(0,0,0,0.58);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   padding: 28px;
 }
@@ -274,6 +367,11 @@ footer {
   text-transform: uppercase;
 }
 
+footer a {
+  margin-left: 18px;
+  text-decoration: none;
+}
+
 @media (max-width: 920px) {
   .nav {
     position: absolute;
@@ -295,15 +393,25 @@ footer {
   .deck-section,
   .deck-section.reverse {
     grid-template-columns: 1fr;
-    min-height: auto;
+    min-height: 0;
     padding: 72px 20px;
   }
 
-  .daw-grid {
+  .daw-grid,
+  .company-grid {
     grid-template-columns: 1fr;
+  }
+
+  .legal-page {
+    padding: 120px 20px 72px;
   }
 
   footer {
     flex-direction: column;
+  }
+
+  footer a {
+    display: inline-block;
+    margin: 0 18px 0 0;
   }
 }
