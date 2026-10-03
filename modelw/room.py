@@ -145,16 +145,21 @@ class RoomEngine:
         return str(get_checkpoints_dir())
 
     def _load_acestep(self):
-        if self._acestep_dit is not None:
+        if self._acestep_dit is not None and self._acestep_llm is not None:
             return
+        # Publish the handlers together only after all loading/validation succeeds.
+        # Otherwise one failed download leaves retries using an incomplete model.
+        self._acestep_dit = None
+        self._acestep_llm = None
+        self._initialized = False
         from acestep.handler import AceStepHandler
         from acestep.llm_inference import LLMHandler
 
         ckpt_dir = self._ace_step_checkpoint_dir()
 
         print("[ROOM] Loading ACE-Step DiT...")
-        self._acestep_dit = AceStepHandler()
-        dit_msg, dit_ok = self._acestep_dit.initialize_service(
+        dit = AceStepHandler()
+        dit_msg, dit_ok = dit.initialize_service(
             project_root=self.config.acestep_root,
             config_path=self.config.dit_config,
             device=self.config.device,
@@ -166,8 +171,8 @@ class RoomEngine:
             )
 
         print("[ROOM] Loading ACE-Step LM...")
-        self._acestep_llm = LLMHandler()
-        llm_msg, llm_ok = self._acestep_llm.initialize(
+        llm = LLMHandler()
+        llm_msg, llm_ok = llm.initialize(
             checkpoint_dir=ckpt_dir,
             lm_model_path=self.config.lm_model,
             backend=self.config.lm_backend,
@@ -179,7 +184,7 @@ class RoomEngine:
                 or f"ACE-Step LM failed to load from {ckpt_dir!r}. See Container logs."
             )
 
-        h = self._acestep_dit
+        h = dit
         if (
             h.model is None
             or h.vae is None
@@ -191,6 +196,8 @@ class RoomEngine:
                 f"Expected assets under {ckpt_dir!r}."
             )
 
+        self._acestep_dit = dit
+        self._acestep_llm = llm
         print("[ROOM] ACE-Step ready.")
 
     def _load_openvoice(self):

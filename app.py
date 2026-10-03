@@ -91,11 +91,13 @@ def _get_engine():
     try:
         from modelw.room import RoomEngine
 
-        _engine = RoomEngine(_default_room_config())
-        _engine.initialize()
+        engine = RoomEngine(_default_room_config())
+        engine.initialize()
+        # A failed load must remain retryable on the next request.
+        _engine = engine
         return _engine
     except Exception as e:
-        print(f"[ROOM] Engine init failed: {e}")
+        logging.getLogger(__name__).exception("[ROOM] Engine initialization failed")
         raise gr.Error(f"Engine not ready: {e}")
 
 
